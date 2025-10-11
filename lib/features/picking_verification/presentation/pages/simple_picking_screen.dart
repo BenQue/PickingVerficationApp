@@ -88,78 +88,110 @@ class _SimplePickingScreenState extends State<SimplePickingScreen>
     );
   }
 
-  /// 构建订单输入视图
+  /// 构建订单输入视图 - 针对专业PDA设备优化
   Widget _buildOrderInputView() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: SingleChildScrollView(
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            const SizedBox(height: 40),
+
+            // 主标题
             const Icon(
-              Icons.qr_code_scanner,
-              size: 100,
+              Icons.assignment,
+              size: 80,
               color: Colors.blue,
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
             const Text(
-              '扫描或输入工单号',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              '工单校验',
+              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 32),
-            
-            // 扫描按钮
+            const SizedBox(height: 8),
+            const Text(
+              '请输入或扫描工单号',
+              style: TextStyle(fontSize: 16, color: Colors.grey),
+            ),
+
+            const SizedBox(height: 40),
+
+            // 主要输入区域
+            TextField(
+              controller: _orderNoController,
+              style: const TextStyle(fontSize: 22),
+              autofocus: true, // 自动聚焦，便于扫码头直接输入
+              decoration: InputDecoration(
+                labelText: '工单号',
+                labelStyle: const TextStyle(fontSize: 18),
+                hintText: '扫码头扫描或手动输入',
+                hintStyle: const TextStyle(fontSize: 16),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: const BorderSide(width: 2),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: const BorderSide(color: Colors.blue, width: 2),
+                ),
+                prefixIcon: const Icon(Icons.qr_code_2, size: 32, color: Colors.blue),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.clear, size: 28),
+                  onPressed: () => _orderNoController.clear(),
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+              ),
+              onSubmitted: _loadWorkOrder,
+              textInputAction: TextInputAction.go,
+            ),
+
+            const SizedBox(height: 24),
+
+            // 主查询按钮
             SizedBox(
               width: double.infinity,
               height: 60,
-              child: ElevatedButton.icon(
-                onPressed: _startScanning,
-                icon: const Icon(Icons.qr_code_scanner, size: 28),
-                label: const Text('扫描二维码', style: TextStyle(fontSize: 20)),
-                style: ElevatedButton.styleFrom(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-            ),
-            
-            const SizedBox(height: 24),
-            const Text('或', style: TextStyle(fontSize: 18)),
-            const SizedBox(height: 24),
-            
-            // 手动输入
-            TextField(
-              controller: _orderNoController,
-              style: const TextStyle(fontSize: 20),
-              decoration: InputDecoration(
-                labelText: '工单号',
-                hintText: '请输入工单号',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                prefixIcon: const Icon(Icons.edit, size: 28),
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.clear),
-                  onPressed: () => _orderNoController.clear(),
-                ),
-              ),
-              onSubmitted: _loadWorkOrder,
-            ),
-            
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              height: 56,
               child: ElevatedButton(
                 onPressed: () => _loadWorkOrder(_orderNoController.text),
                 style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  elevation: 4,
+                ),
+                child: const Text(
+                  '开始校验',
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 40),
+
+            // 备用相机扫码选项（小按钮，放在角落）
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                const Text(
+                  '无扫码头？',
+                  style: TextStyle(fontSize: 14, color: Colors.grey),
+                ),
+                const SizedBox(width: 8),
+                TextButton.icon(
+                  onPressed: _startScanning,
+                  icon: const Icon(Icons.camera_alt, size: 20),
+                  label: const Text(
+                    '相机扫码',
+                    style: TextStyle(fontSize: 14),
+                  ),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.grey,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   ),
                 ),
-                child: const Text('查询工单', style: TextStyle(fontSize: 20)),
-              ),
+              ],
             ),
           ],
         ),
@@ -201,6 +233,11 @@ class _SimplePickingScreenState extends State<SimplePickingScreen>
                       const SizedBox(height: 4),
                       Text(
                         '操作号: ${workOrder.operationNo}',
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '标签数量: ${workOrder.labelCount}',
                         style: const TextStyle(fontSize: 16),
                       ),
                     ],
@@ -281,9 +318,15 @@ class _SimplePickingScreenState extends State<SimplePickingScreen>
               Tab(
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text('断线领料'),
-                    const SizedBox(width: 4),
+                    const Flexible(
+                      child: Text('断线物料',
+                        style: TextStyle(fontSize: 13),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 2),
                     _buildTabBadge(workOrder.cableMaterials),
                   ],
                 ),
@@ -291,9 +334,15 @@ class _SimplePickingScreenState extends State<SimplePickingScreen>
               Tab(
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text('中央仓库'),
-                    const SizedBox(width: 4),
+                    const Flexible(
+                      child: Text('中央仓库',
+                        style: TextStyle(fontSize: 13),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 2),
                     _buildTabBadge(workOrder.centerMaterials),
                   ],
                 ),
@@ -301,9 +350,15 @@ class _SimplePickingScreenState extends State<SimplePickingScreen>
               Tab(
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text('自动化库'),
-                    const SizedBox(width: 4),
+                    const Flexible(
+                      child: Text('自动化库',
+                        style: TextStyle(fontSize: 13),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 2),
                     _buildTabBadge(workOrder.autoMaterials),
                   ],
                 ),
@@ -566,6 +621,9 @@ class _SimplePickingScreenState extends State<SimplePickingScreen>
               height: 56,
               child: ElevatedButton(
                 onPressed: () {
+                  // 清空订单输入框
+                  _orderNoController.clear();
+                  // 重置状态
                   context.read<SimplePickingBloc>().add(ResetPickingState());
                 },
                 style: ElevatedButton.styleFrom(
@@ -625,6 +683,9 @@ class _SimplePickingScreenState extends State<SimplePickingScreen>
                 const SizedBox(width: 16),
                 OutlinedButton(
                   onPressed: () {
+                    // 清空订单输入框
+                    _orderNoController.clear();
+                    // 重置状态
                     context.read<SimplePickingBloc>().add(ResetPickingState());
                   },
                   child: const Text('返回', style: TextStyle(fontSize: 18)),

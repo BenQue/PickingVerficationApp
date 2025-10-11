@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>物料校验拣配应用图标生成器</title>
+</head>
+<body>
+    <canvas id="iconCanvas" width="1024" height="1024"></canvas>
+    <script>
+        const canvas = document.getElementById('iconCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // 背景渐变 - 工业蓝色
+        const gradient = ctx.createLinearGradient(0, 0, 0, 1024);
+        gradient.addColorStop(0, '#2196F3');
+        gradient.addColorStop(1, '#1565C0');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, 1024, 1024);
+
+        // 添加圆角效果
+        ctx.globalCompositeOperation = 'destination-in';
+        ctx.beginPath();
+        ctx.moveTo(100, 0);
+        ctx.lineTo(924, 0);
+        ctx.quadraticCurveTo(1024, 0, 1024, 100);
+        ctx.lineTo(1024, 924);
+        ctx.quadraticCurveTo(1024, 1024, 924, 1024);
+        ctx.lineTo(100, 1024);
+        ctx.quadraticCurveTo(0, 1024, 0, 924);
+        ctx.lineTo(0, 100);
+        ctx.quadraticCurveTo(0, 0, 100, 0);
+        ctx.fill();
+
+        ctx.globalCompositeOperation = 'source-over';
+
+        // 绘制箱子图标 (代表物料容器)
+        ctx.fillStyle = '#FFFFFF';
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.lineWidth = 40;
+
+        // 主箱体
+        ctx.fillRect(250, 400, 524, 450);
+        ctx.strokeRect(250, 400, 524, 450);
+
+        // 箱盖
+        ctx.beginPath();
+        ctx.moveTo(200, 400);
+        ctx.lineTo(512, 250);
+        ctx.lineTo(824, 400);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // 箱子中间分隔线
+        ctx.beginPath();
+        ctx.moveTo(512, 250);
+        ctx.lineTo(512, 850);
+        ctx.stroke();
+
+        // 添加对勾符号 (代表校验)
+        ctx.strokeStyle = '#4CAF50';
+        ctx.lineWidth = 80;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        ctx.beginPath();
+        ctx.moveTo(350, 600);
+        ctx.lineTo(450, 700);
+        ctx.lineTo(674, 480);
+        ctx.stroke();
+
+        console.log('图标已生成');
+    </script>
+</body>
+</html>

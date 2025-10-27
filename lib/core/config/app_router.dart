@@ -32,6 +32,11 @@ import '../../features/picking_verification/presentation/pages/simple_picking_sc
 import '../../features/picking_verification/presentation/bloc/simple_picking_bloc.dart';
 import '../../features/picking_verification/data/repositories/simple_picking_repository_impl.dart';
 import '../../features/picking_verification/data/datasources/simple_picking_datasource.dart';
+import '../../features/line_stock/presentation/pages/stock_query_screen.dart';
+import '../../features/line_stock/presentation/pages/cable_shelving_screen.dart';
+import '../../features/line_stock/presentation/bloc/line_stock_bloc.dart';
+import '../../features/line_stock/data/repositories/line_stock_repository_impl.dart';
+import '../../features/line_stock/data/datasources/line_stock_remote_datasource.dart';
 
 /// Application routing configuration using GoRouter
 /// Implements route guards for authentication and permissions
@@ -45,6 +50,8 @@ class AppRouter {
   static const String verificationCompletionRoute = '/verification-completion';
   static const String platformReceivingRoute = '/platform-receiving';
   static const String lineDeliveryRoute = '/line-delivery';
+  static const String lineStockQueryRoute = '/line-stock';
+  static const String lineStockShelvingRoute = '/line-stock/shelving';
 
   static const _secureStorage = FlutterSecureStorage();
 
@@ -87,7 +94,7 @@ class AppRouter {
 
   /// Global router configuration
   static final GoRouter router = GoRouter(
-    initialLocation: loginRoute,
+    initialLocation: workbenchRoute,  // Skip login for testing
     routes: [
       // Login route - no authentication required
       GoRoute(
@@ -262,6 +269,37 @@ class AppRouter {
         path: lineDeliveryRoute,
         name: 'line-delivery',
         builder: (context, state) => const LineDeliveryScreen(),
+      ),
+
+      // Line Stock routes
+      GoRoute(
+        path: lineStockQueryRoute,
+        name: 'line-stock-query',
+        builder: (context, state) => BlocProvider(
+          create: (context) => LineStockBloc(
+            repository: LineStockRepositoryImpl(
+              remoteDataSource: LineStockRemoteDataSource(
+                dio: DioClient().dio,
+              ),
+            ),
+          ),
+          child: const StockQueryScreen(),
+        ),
+      ),
+
+      GoRoute(
+        path: lineStockShelvingRoute,
+        name: 'line-stock-shelving',
+        builder: (context, state) => BlocProvider(
+          create: (context) => LineStockBloc(
+            repository: LineStockRepositoryImpl(
+              remoteDataSource: LineStockRemoteDataSource(
+                dio: DioClient().dio,
+              ),
+            ),
+          ),
+          child: const CableShelvingScreen(),
+        ),
       ),
     ],
 

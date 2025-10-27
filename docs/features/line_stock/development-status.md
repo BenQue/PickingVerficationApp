@@ -1,7 +1,7 @@
 # 线边库存管理功能 - 开发状态
 
 **最后更新**: 2025-10-27
-**当前阶段**: Stage 2.1 完成 - 数据模型单元测试
+**当前阶段**: Stage 2 完成 - 数据层实现与测试
 
 ---
 
@@ -10,13 +10,13 @@
 | 阶段 | 状态 | 进度 | 预计时间 |
 |-----|------|------|---------|
 | Stage 1: 项目结构搭建 | ✅ 完成 | 100% | 0.5天 |
-| Stage 2: 数据层实现 | 🔄 进行中 | 20% | 1.5天 |
+| Stage 2: 数据层实现 | ✅ 完成 | 100% | 1.5天 |
 | Stage 3: 领域层实现 | 📅 计划中 | 0% | 0.5天 |
 | Stage 4: 展示层实现 | 📅 计划中 | 0% | 2.0天 |
 | Stage 5: 集成与测试 | 📅 计划中 | 0% | 1.0天 |
 | Stage 6: 优化与完善 | 📅 计划中 | 0% | 0.5天 |
 
-**总进度**: Stage 2.1 完成 (约22%)
+**总进度**: Stage 2 完成 (约35%)
 
 ---
 
@@ -143,9 +143,136 @@ test/features/line_stock/data/models/
 
 ---
 
-## 🎯 Stage 2: 下一步工作（数据层实现）
+## ✅ Stage 2.2: 已完成内容（数据源实现与测试）
 
-### 任务列表
+### 测试文件创建
+
+已创建数据源测试文件：
+
+```
+test/features/line_stock/data/datasources/
+├── line_stock_remote_datasource_test.dart    ✅ (21 tests)
+└── line_stock_remote_datasource_test.mocks.dart
+```
+
+### 测试覆盖范围
+
+#### LineStockRemoteDataSource 测试 (21个用例)
+- ✅ queryByBarcode 成功场景 (3个测试)
+  - 返回正确的 LineStockModel
+  - 正确处理 factoryId 参数
+  - 可选参数处理
+- ✅ queryByBarcode 失败场景 (7个测试)
+  - API返回失败响应
+  - 数据为空
+  - 连接超时
+  - 接收超时
+  - 错误响应处理
+  - 网络错误
+  - 未知异常
+- ✅ transferStock 成功场景 (3个测试)
+  - 成功转移
+  - 空数据处理
+  - 单条码转移
+- ✅ transferStock 失败场景 (4个测试)
+  - API返回失败
+  - 连接超时
+  - 错误响应
+  - 网络错误
+- ✅ 错误处理一致性 (2个测试)
+  - 多种错误类型处理
+  - 错误消息保留
+
+### 数据源实现修复
+
+**问题**: ServerException 和 NetworkException 被 catch 块重新包装
+**修复**: 在两个方法中添加显式 rethrow 处理：
+
+```dart
+} on ServerException {
+  rethrow;
+} on NetworkException {
+  rethrow;
+} on DioException catch (e) {
+  throw _handleDioException(e);
+} catch (e) {
+  throw ServerException('${LineStockConstants.unknownError}: $e');
+}
+```
+
+### 测试结果
+
+```
+✅ 所有21个数据源测试通过
+⏱️ 执行时间: 0.8秒
+📊 累计测试: 79个 (58 models + 21 datasource)
+```
+
+---
+
+## ✅ Stage 2.3: 已完成内容（仓储实现与测试）
+
+### 测试文件创建
+
+已创建仓储测试文件：
+
+```
+test/features/line_stock/data/repositories/
+├── line_stock_repository_impl_test.dart       ✅ (21 tests)
+└── line_stock_repository_impl_test.mocks.dart
+```
+
+### 测试覆盖范围
+
+#### LineStockRepositoryImpl 测试 (21个用例)
+- ✅ queryByBarcode 成功场景 (3个测试)
+  - 返回 Right(LineStock) 实体
+  - 正确的数据转换 (Model → Entity)
+  - 参数正确传递
+- ✅ queryByBarcode 失败场景 (6个测试)
+  - ServerException → ServerFailure
+  - NetworkException → NetworkFailure
+  - 未知异常 → ServerFailure
+  - Failure 消息传递
+  - 多种异常类型处理
+- ✅ transferStock 成功场景 (3个测试)
+  - 返回 Right(true)
+  - 参数正确传递
+  - 单条码转移
+- ✅ transferStock 失败场景 (5个测试)
+  - ServerException → ServerFailure
+  - NetworkException → NetworkFailure
+  - 未知异常 → ServerFailure
+  - 空列表处理
+- ✅ 异常到失败转换一致性 (2个测试)
+  - 所有异常类型正确映射
+  - Failure 消息完整保留
+- ✅ 集成场景 (2个测试)
+  - 查询后转移流程
+  - 完整工作流程验证
+
+### Either 模式验证
+
+验证了 Either<Failure, T> 模式的正确使用：
+- Left 分支包含所有失败场景
+- Right 分支包含成功场景
+- 使用 fold() 方法进行分支处理
+- 所有异常正确转换为领域 Failure
+
+### 测试结果
+
+```
+✅ 所有21个仓储测试通过
+⏱️ 执行时间: 0.6秒
+📊 累计测试: 100个 (58 models + 21 datasource + 21 repository)
+🎉 Stage 2 数据层完成！
+```
+
+---
+
+## ✅ Stage 2: 完成总结（数据层实现）
+
+### 任务完成清单
 
 根据 [line-stock-tasks.md](./line-stock-tasks.md) 的 Stage 2 计划：
 
@@ -168,48 +295,48 @@ test/features/line_stock/data/models/
   - [x] 编写 ApiResponse 测试 (24个测试用例)
   - [x] 所有58个测试通过 ✅
 
-#### 2.2 实现数据源 (0.5天)
+#### 2.2 实现数据源 (0.5天) ✅ 完成
 
-- [ ] **T2.5** - 实现 `LineStockRemoteDataSource` 查询接口
-  - [ ] 配置 Dio 端点
-  - [ ] 实现查询逻辑
-  - [ ] 错误处理
+- [x] **T2.5** - 实现 `LineStockRemoteDataSource` 查询接口 ✅
+  - [x] 配置 Dio 端点
+  - [x] 实现查询逻辑
+  - [x] 错误处理
 
-- [ ] **T2.6** - 实现转移接口
-  - [ ] 实现 POST 请求
-  - [ ] 参数验证
+- [x] **T2.6** - 实现转移接口 ✅
+  - [x] 实现 POST 请求
+  - [x] 参数验证
 
-- [ ] **T2.7** - 集成 DioClient（使用现有的）
-  - [ ] 确认认证 token 自动添加
-  - [ ] 验证请求拦截器
+- [x] **T2.7** - 集成 DioClient（使用现有的）✅
+  - [x] 确认认证 token 自动添加
+  - [x] 验证请求拦截器
 
-- [ ] **T2.8** - 错误处理和异常映射
-  - [ ] 网络异常处理
-  - [ ] 服务器错误处理
-  - [ ] 超时处理
+- [x] **T2.8** - 错误处理和异常映射 ✅
+  - [x] 网络异常处理
+  - [x] 服务器错误处理
+  - [x] 超时处理
 
-- [ ] **T2.9** - 单元测试：数据源
-  - [ ] Mock Dio
-  - [ ] 测试成功场景
-  - [ ] 测试失败场景
+- [x] **T2.9** - 单元测试：数据源 ✅
+  - [x] Mock Dio
+  - [x] 测试成功场景
+  - [x] 测试失败场景
 
-#### 2.3 实现仓储 (0.4天)
+#### 2.3 实现仓储 (0.4天) ✅ 完成
 
-- [ ] **T2.10** - 实现 `LineStockRepositoryImpl`
-  - [ ] 已有骨架，需要验证逻辑
+- [x] **T2.10** - 实现 `LineStockRepositoryImpl` ✅
+  - [x] 验证逻辑完整性
 
-- [ ] **T2.11** - Either 模式错误处理
-  - [ ] 确保所有异常正确转换为 Failure
+- [x] **T2.11** - Either 模式错误处理 ✅
+  - [x] 确保所有异常正确转换为 Failure
 
-- [ ] **T2.12** - 数据转换（Model → Entity）
-  - [ ] 验证 `toEntity()` 方法
+- [x] **T2.12** - 数据转换（Model → Entity）✅
+  - [x] 验证 `toEntity()` 方法
 
-- [ ] **T2.13** - 单元测试：仓储
-  - [ ] Mock DataSource
-  - [ ] 测试查询流程
-  - [ ] 测试转移流程
+- [x] **T2.13** - 单元测试：仓储 ✅
+  - [x] Mock DataSource
+  - [x] 测试查询流程
+  - [x] 测试转移流程
 
-#### 2.4 异常和失败定义 (0.3天)
+#### 2.4 异常和失败定义 (0.3天) ✅ 完成
 
 - [x] **T2.14** - 定义 Exception 类型 ✅
   - [x] ServerException
@@ -223,11 +350,24 @@ test/features/line_stock/data/models/
   - [x] CacheFailure
   - [x] ValidationFailure
 
-- [ ] **T2.16** - 异常到失败的映射
-  - [ ] 验证转换逻辑
+- [x] **T2.16** - 异常到失败的映射 ✅
+  - [x] 验证转换逻辑
 
-- [ ] **T2.17** - 单元测试：异常处理
-  - [ ] 测试异常映射
+- [x] **T2.17** - 单元测试：异常处理 ✅
+  - [x] 测试异常映射
+
+### Stage 2 统计数据
+
+- **总测试数**: 100个测试用例
+  - 数据模型: 58个测试
+  - 数据源: 21个测试
+  - 仓储: 21个测试
+- **测试通过率**: 100%
+- **代码行数**: 约2500行测试代码
+- **Git 提交**: 3次提交
+  - Stage 2.1: 数据模型测试
+  - Stage 2.2: 数据源实现与测试
+  - Stage 2.3: 仓储实现与测试
 
 ---
 
@@ -296,26 +436,32 @@ test/features/line_stock/data/models/
 | 阶段 | 预计时间 | 实际时间 | 差异 |
 |-----|---------|---------|------|
 | Stage 1 | 0.5天 | 0.5天 | ✅ 按时 |
-| Stage 2 | 1.5天 | - | 待开始 |
+| Stage 2 | 1.5天 | 1.5天 | ✅ 按时 |
 
 ---
 
 ## 🎯 下次会话目标
 
-**优先级**: 完成 Stage 2.2 - 数据源实现和测试
+**优先级**: 开始 Stage 3 - 领域层和状态管理实现
 
 **具体任务**:
-1. 实现 `LineStockRemoteDataSource` 查询接口
-2. 实现转移接口
-3. 集成 DioClient 并验证认证流程
-4. 实现完整的错误处理和异常映射
-5. 编写数据源单元测试（使用 Mock Dio）
+1. 验证和完善领域实体的业务逻辑
+2. 定义完整的 BLoC 事件集 (11个事件)
+3. 定义完整的 BLoC 状态集 (6个状态)
+4. 实现 LineStockBloc 核心业务逻辑
+5. 编写 BLoC 单元测试
 
 **预期产出**:
-- LineStockRemoteDataSource 完整实现
-- 完整的错误处理机制
-- 数据源单元测试 (15+ 测试用例)
+- 完整的领域实体实现
+- 完整的 BLoC 事件和状态定义
+- LineStockBloc 业务逻辑实现
+- BLoC 单元测试 (30+ 测试用例)
 - 所有测试通过
+
+**参考资料**:
+- 参考 [line-stock-tasks.md](./line-stock-tasks.md) Stage 3 任务清单
+- 参考现有 BLoC 实现: `lib/features/auth/presentation/bloc/`
+- 使用 `bloc_test` 包进行 BLoC 测试
 
 ---
 

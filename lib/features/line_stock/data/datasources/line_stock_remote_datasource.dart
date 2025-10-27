@@ -50,6 +50,10 @@ class LineStockRemoteDataSourceImpl implements LineStockRemoteDataSource {
       } else {
         throw ServerException(apiResponse.message);
       }
+    } on ServerException {
+      rethrow;
+    } on NetworkException {
+      rethrow;
     } on DioException catch (e) {
       throw _handleDioException(e);
     } catch (e) {
@@ -83,6 +87,10 @@ class LineStockRemoteDataSourceImpl implements LineStockRemoteDataSource {
       } else {
         throw ServerException(apiResponse.message);
       }
+    } on ServerException {
+      rethrow;
+    } on NetworkException {
+      rethrow;
     } on DioException catch (e) {
       throw _handleDioException(e);
     } catch (e) {

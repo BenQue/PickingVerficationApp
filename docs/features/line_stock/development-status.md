@@ -11,12 +11,12 @@
 |-----|------|------|---------|
 | Stage 1: 项目结构搭建 | ✅ 完成 | 100% | 0.5天 |
 | Stage 2: 数据层实现 | ✅ 完成 | 100% | 1.5天 |
-| Stage 3: 领域层实现 | 📅 计划中 | 0% | 0.5天 |
+| Stage 3: 领域层和BLoC实现 | ✅ 完成 | 100% | 0.5天 |
 | Stage 4: 展示层实现 | 📅 计划中 | 0% | 2.0天 |
 | Stage 5: 集成与测试 | 📅 计划中 | 0% | 1.0天 |
 | Stage 6: 优化与完善 | 📅 计划中 | 0% | 0.5天 |
 
-**总进度**: Stage 2 完成 (约35%)
+**总进度**: Stage 3 完成 (约50%)
 
 ---
 
@@ -371,6 +371,173 @@ test/features/line_stock/data/repositories/
 
 ---
 
+## ✅ Stage 3: 已完成内容（BLoC层实现）
+
+### 任务完成清单
+
+根据 [line-stock-tasks.md](./line-stock-tasks.md) 的 Stage 3 计划：
+
+#### 3.1 领域实体验证 ✅ 完成
+
+所有领域实体在 Stage 1 中已正确定义：
+- [x] LineStock 实体 ✅
+- [x] CableItem 值对象 ✅
+- [x] TransferResult 实体 ✅
+- [x] 业务逻辑方法完整 ✅
+
+#### 3.2 BLoC事件定义 (11个事件) ✅ 完成
+
+- [x] **查询相关事件** (2个) ✅
+  - QueryStockByBarcode - 查询库存
+  - ClearQueryResult - 清空查询结果
+
+- [x] **上架相关事件** (7个) ✅
+  - SetTargetLocation - 设置目标库位
+  - ModifyTargetLocation - 修改目标库位
+  - AddCableBarcode - 添加电缆条码
+  - RemoveCableBarcode - 移除电缆条码
+  - ClearCableList - 清空电缆列表
+  - ConfirmShelving - 确认上架
+  - ResetShelving - 重置上架状态
+
+- [x] **通用事件** (2个) ✅
+  - ResetLineStock - 重置所有状态
+
+#### 3.3 BLoC状态定义 (6个状态) ✅ 完成
+
+- [x] **LineStockInitial** - 初始状态 ✅
+- [x] **LineStockLoading** - 加载状态（带消息） ✅
+- [x] **StockQuerySuccess** - 查询成功状态 ✅
+- [x] **ShelvingInProgress** - 上架进行中状态 ✅
+  - 包含 targetLocation, cableList, canSubmit
+  - 提供 hasTargetLocation, hasCables, cableCount 辅助方法
+  - 提供 copyWith 方法
+- [x] **ShelvingSuccess** - 上架成功状态 ✅
+  - 包含 message, targetLocation, transferredCount
+  - 提供 displayMessage 格式化方法
+- [x] **LineStockError** - 错误状态 ✅
+  - 包含 message, canRetry, previousState
+
+#### 3.4 BLoC业务逻辑实现 ✅ 完成
+
+- [x] **T3.15** - 查询条码事件处理 ✅
+  - 调用 repository.queryByBarcode
+  - 正确处理 Either 结果
+  - 发出 Loading → Success/Error 状态
+
+- [x] **T3.16** - 设置目标库位事件处理 ✅
+  - 创建 ShelvingInProgress 状态
+  - 重置电缆列表
+
+- [x] **T3.17** - 添加电缆条码事件处理（含验证） ✅
+  - 检查是否设置目标库位
+  - 检查条码是否重复
+  - 验证条码有效性（调用 repository.queryByBarcode）
+  - 添加到列表并更新 canSubmit 标志
+  - 实现自动恢复状态（2秒后）
+
+- [x] **T3.18** - 删除电缆条码事件处理 ✅
+  - 从列表中移除指定条码
+  - 更新 canSubmit 标志
+
+- [x] **T3.19** - 确认上架事件处理 ✅
+  - 调用 repository.transferStock
+  - 发出 Loading → Success/Error 状态
+  - 包含转移数量统计
+
+- [x] **T3.20** - 重置状态事件处理 ✅
+  - ResetShelving - 回到 Initial
+  - ResetLineStock - 回到 Initial
+  - ClearQueryResult - 回到 Initial
+  - ModifyTargetLocation - 回到 Initial
+
+- [x] **T3.22** - BLoC单元测试 ✅
+  - 编写 37 个测试用例
+  - 所有测试通过 ✅
+
+#### 3.5 测试覆盖范围
+
+**测试文件**: `test/features/line_stock/presentation/bloc/line_stock_bloc_test.dart`
+
+**测试分组** (37个测试用例):
+
+1. **查询功能测试** (5个测试)
+   - 成功查询并返回库存
+   - 查询失败返回错误
+   - factoryId 参数正确传递
+   - 网络失败处理
+   - 清空查询结果
+
+2. **目标库位管理** (3个测试)
+   - 设置目标库位
+   - 设置新库位时重置列表
+   - 修改库位回到初始状态
+
+3. **电缆管理测试** (10个测试)
+   - 未设置库位时禁止添加
+   - 添加有效条码成功
+   - 防止重复条码
+   - 条码验证失败处理
+   - 添加多个电缆
+   - 移除电缆
+   - 移除最后一个电缆时更新状态
+   - 非上架状态不处理移除
+   - 条码不存在时保持状态
+   - 清空所有电缆
+
+4. **上架确认测试** (4个测试)
+   - 上架成功
+   - 上架失败
+   - 返回 false 时处理
+   - 网络失败处理
+
+5. **状态重置测试** (3个测试)
+   - 重置上架状态
+   - 从任意状态重置
+   - 从进行中状态重置
+
+6. **辅助方法测试** (8个测试)
+   - hasTargetLocation 方法
+   - hasCables 方法
+   - cableCount 方法
+   - copyWith 方法
+   - displayMessage 格式化
+
+7. **集成场景测试** (2个测试)
+   - 完整上架工作流
+   - 成功后重新开始
+
+### Stage 3 统计数据
+
+- **BLoC文件**: 3个 (events, states, bloc)
+- **BLoC测试**: 37个测试用例
+- **累计测试数**: 137个测试 (100 data + 37 bloc)
+- **测试通过率**: 100%
+- **代码行数**: 约800行 BLoC + 约700行测试
+- **Git 提交**: 1次提交 (Stage 3)
+
+### 业务逻辑验证
+
+✅ **状态转换正确**:
+- Initial → Loading → Success/Error
+- Initial → SetTarget → ShelvingInProgress
+- ShelvingInProgress → AddCable → ShelvingInProgress (updated)
+- ShelvingInProgress → ConfirmShelving → Loading → Success
+
+✅ **错误处理完善**:
+- 条码重复检测
+- 条码验证失败
+- 网络错误处理
+- 错误自动恢复（2秒）
+
+✅ **业务规则实现**:
+- 必须先设置目标库位
+- 条码不能重复
+- canSubmit 正确计算（有库位 && 有电缆）
+- 上架成功后显示统计信息
+
+---
+
 ## 📝 开发建议
 
 ### 启动新会话时
@@ -442,26 +609,26 @@ test/features/line_stock/data/repositories/
 
 ## 🎯 下次会话目标
 
-**优先级**: 开始 Stage 3 - 领域层和状态管理实现
+**优先级**: 开始 Stage 4 - 展示层实现（UI）
 
 **具体任务**:
-1. 验证和完善领域实体的业务逻辑
-2. 定义完整的 BLoC 事件集 (11个事件)
-3. 定义完整的 BLoC 状态集 (6个状态)
-4. 实现 LineStockBloc 核心业务逻辑
-5. 编写 BLoC 单元测试
+1. 实现通用 UI 组件 (BarcodeScanInput, LoadingOverlay, ErrorDialog)
+2. 实现库存查询页面 (StockQueryScreen)
+3. 实现电缆上架页面 (CableShelvingScreen)
+4. 实现自定义 widgets (StockInfoCard, CableListItem, ShelvingSummary)
+5. 集成 BLoC 到 UI 层
 
 **预期产出**:
-- 完整的领域实体实现
-- 完整的 BLoC 事件和状态定义
-- LineStockBloc 业务逻辑实现
-- BLoC 单元测试 (30+ 测试用例)
-- 所有测试通过
+- 完整的页面和组件实现
+- BLoC 状态正确反映到 UI
+- 扫码输入自动聚焦和提交
+- 流畅的用户交互体验
+- PDA 友好的 UI 设计（大字体、高对比度）
 
 **参考资料**:
-- 参考 [line-stock-tasks.md](./line-stock-tasks.md) Stage 3 任务清单
-- 参考现有 BLoC 实现: `lib/features/auth/presentation/bloc/`
-- 使用 `bloc_test` 包进行 BLoC 测试
+- 参考 [line-stock-tasks.md](./line-stock-tasks.md) Stage 4 任务清单
+- 参考现有 UI 实现: `lib/features/auth/presentation/pages/`
+- 参考工业 PDA 设计规范: `lib/core/theme/app_theme.dart`
 
 ---
 

@@ -33,6 +33,7 @@ class PrimaryButton extends StatelessWidget {
               )
             : Row(
                 mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   if (icon != null) ...[
                     Icon(icon, size: 20),
@@ -67,8 +68,9 @@ class SecondaryButton extends StatelessWidget {
       child: OutlinedButton(
         onPressed: onPressed,
         child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
             if (icon != null) ...[
               Icon(icon, size: 20),
               const SizedBox(width: 8),

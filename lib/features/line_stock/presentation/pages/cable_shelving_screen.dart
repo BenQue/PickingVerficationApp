@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/widgets/common_widgets.dart';
@@ -7,7 +8,7 @@ import '../bloc/line_stock_event.dart';
 import '../bloc/line_stock_state.dart';
 import '../widgets/barcode_input_field.dart';
 import '../widgets/cable_list_item.dart';
-import '../widgets/shelving_summary.dart';
+// ShelvingSummary widget removed - no longer needed
 
 /// Cable shelving screen for transferring cables to a target location
 ///
@@ -30,12 +31,35 @@ class CableShelvingScreen extends StatefulWidget {
 
 class _CableShelvingScreenState extends State<CableShelvingScreen> {
   final _locationController = TextEditingController();
+  final _cableController = TextEditingController(); // Controller for cable barcode input
   bool _isLocationSet = false;
+  int _previousCableCount = 0; // Track previous cable count to detect successful additions
+
+  @override
+  void initState() {
+    super.initState();
+    // Add listener to rebuild when location text changes
+    _locationController.addListener(() {
+      setState(() {});
+    });
+  }
 
   @override
   void dispose() {
     _locationController.dispose();
+    _cableController.dispose();
     super.dispose();
+  }
+
+  /// Recursively find the ShelvingInProgress state from error chain
+  ShelvingInProgress? _findShelvingState(LineStockState state) {
+    if (state is ShelvingInProgress) {
+      return state;
+    }
+    if (state is LineStockError && state.previousState != null) {
+      return _findShelvingState(state.previousState!);
+    }
+    return null;
   }
 
   void _setTargetLocation() {
@@ -51,11 +75,13 @@ class _CableShelvingScreenState extends State<CableShelvingScreen> {
   }
 
   void _modifyTargetLocation() {
+    // Clear location input and allow re-entry
+    // BLoC will preserve cable list
+    _locationController.clear();
+    context.read<LineStockBloc>().add(const ModifyTargetLocation());
     setState(() {
       _isLocationSet = false;
     });
-    context.read<LineStockBloc>().add(const ModifyTargetLocation());
-    _locationController.clear();
   }
 
   void _onCableScanned(String barcode) {
@@ -100,7 +126,7 @@ class _CableShelvingScreenState extends State<CableShelvingScreen> {
         context: context,
         builder: (context) => AlertDialog(
           title: const Text('确认上架'),
-          content: Text('确定要将 ${state.cableCount} 条电缆转移到 ${state.targetLocation} 吗？'),
+          content: Text('确定要将 ${state.cableCount} 盘电缆转移到 ${state.targetLocation} 吗？'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
@@ -132,6 +158,10 @@ class _CableShelvingScreenState extends State<CableShelvingScreen> {
       appBar: AppBar(
         title: const Text('电缆上架'),
         centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.go('/workbench'),
+        ),
         actions: [
           // Reset button
           IconButton(
@@ -167,15 +197,47 @@ class _CableShelvingScreenState extends State<CableShelvingScreen> {
       ),
       body: BlocConsumer<LineStockBloc, LineStockState>(
         listener: (context, state) {
-          // Handle error states
+          // Handle error states - clear input and preserve previous state data
           if (state is LineStockError) {
+            // Provide haptic feedback for errors
+            HapticFeedback.mediumImpact();
+            
+            // Show snackbar for better visibility
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(state.message),
-                backgroundColor: theme.colorScheme.error,
+                content: Text(
+                  state.message,
+                  style: const TextStyle(fontSize: 16),
+                ),
+                backgroundColor: Theme.of(context).colorScheme.error,
                 duration: const Duration(seconds: 3),
+                behavior: SnackBarBehavior.floating,
+                action: SnackBarAction(
+                  label: '知道了',
+                  textColor: Colors.white,
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                  },
+                ),
               ),
             );
+            
+            // Clear the input field on error
+            _cableController.clear();
+            // Don't update _previousCableCount - keep it to preserve state
+          }
+
+          // Handle successful cable addition by tracking cable count
+          if (state is ShelvingInProgress) {
+            if (state.cableCount > _previousCableCount) {
+              // Successfully added a cable - dismiss any error snackbar
+              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+              
+              // Clear the input
+              _cableController.clear();
+              // Update previous count to new count
+              _previousCableCount = state.cableCount;
+            }
           }
 
           // Handle success states
@@ -200,25 +262,33 @@ class _CableShelvingScreenState extends State<CableShelvingScreen> {
             );
           }
 
+          // Recursively find the ShelvingInProgress state from error chain
+          final displayState = _findShelvingState(state) ?? state;
+
           return SafeArea(
             child: Column(
               children: [
-                // Step 1: Target Location Input
+                // Step 1: Target Location Input (scrollable)
                 if (!_isLocationSet)
-                  _buildLocationInput(theme)
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: _buildLocationInput(theme),
+                    ),
+                  )
                 else
-                  _buildLocationDisplay(state, theme),
+                  _buildLocationDisplay(displayState, theme),
 
-                const Divider(height: 1),
+                if (_isLocationSet) const Divider(height: 1),
 
                 // Step 2: Cable List
                 if (_isLocationSet) ...[
                   Expanded(
-                    child: _buildCableListSection(state, theme),
+                    child: _buildCableListSection(displayState, theme),
                   ),
 
                   // Bottom action bar
-                  _buildBottomActions(state, theme),
+                  _buildBottomActions(displayState, theme),
                 ],
               ],
             ),
@@ -230,7 +300,7 @@ class _CableShelvingScreenState extends State<CableShelvingScreen> {
 
   Widget _buildLocationInput(ThemeData theme) {
     return Padding(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -243,15 +313,10 @@ class _CableShelvingScreenState extends State<CableShelvingScreen> {
                   color: theme.colorScheme.primaryContainer,
                   shape: BoxShape.circle,
                 ),
-                child: Center(
-                  child: Text(
-                    '1',
-                    style: TextStyle(
-                      color: theme.colorScheme.onPrimaryContainer,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                child: Icon(
+                  Icons.warehouse,
+                  color: theme.colorScheme.onPrimaryContainer,
+                  size: 24,
                 ),
               ),
               const SizedBox(width: 16),
@@ -277,52 +342,24 @@ class _CableShelvingScreenState extends State<CableShelvingScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 24),
-          TextField(
+          const SizedBox(height: 20),
+          BarcodeInputField(
+            label: '目标库位',
+            hint: '扫描或输入库位代码(至少4位)',
             controller: _locationController,
-            autofocus: true,
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w500),
-            decoration: InputDecoration(
-              labelText: '目标库位',
-              labelStyle: const TextStyle(fontSize: 18),
-              hintText: '扫描或输入库位代码',
-              hintStyle: const TextStyle(fontSize: 16),
-              prefixIcon: const Icon(Icons.location_on, size: 32),
-              suffixIcon: _locationController.text.isNotEmpty
-                  ? IconButton(
-                      icon: const Icon(Icons.clear, size: 28),
-                      onPressed: () {
-                        _locationController.clear();
-                        setState(() {});
-                      },
-                    )
-                  : null,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: const BorderSide(width: 2),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide(
-                  color: theme.colorScheme.primary,
-                  width: 2,
-                ),
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 20,
-                vertical: 20,
-              ),
-            ),
-            onChanged: (_) => setState(() {}),
-            onSubmitted: (_) => _setTargetLocation(),
+            prefixIcon: Icons.location_on,
+            minLength: 4,
+            autoSubmitOnChange: false,
+            showKeyboard: false, // PDA模式: 禁用自动弹出键盘
+            onSubmit: (_) => _setTargetLocation(),
           ),
           const SizedBox(height: 16),
           PrimaryButton(
             text: '确认库位',
             icon: Icons.check,
-            onPressed: _locationController.text.trim().isEmpty
-                ? null
-                : _setTargetLocation,
+            onPressed: _locationController.text.trim().length >= 4
+                ? _setTargetLocation
+                : null,
           ),
         ],
       ),
@@ -391,115 +428,62 @@ class _CableShelvingScreenState extends State<CableShelvingScreen> {
       return const SizedBox();
     }
 
-    if (state.cableList.isEmpty) {
-      return SingleChildScrollView(
-        child: Column(
-          children: [
-            const SizedBox(height: 24),
-            // Step 2 header
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Row(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.primaryContainer,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Center(
-                      child: Text(
-                        '2',
-                        style: TextStyle(
-                          color: theme.colorScheme.onPrimaryContainer,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '添加电缆',
-                          style: theme.textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '扫描电缆条码添加到列表',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-            // Barcode input
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: BarcodeInputField(
-                label: '电缆条码',
-                hint: '扫描电缆条码',
-                onSubmit: _onCableScanned,
-              ),
-            ),
-            const SizedBox(height: 40),
-            // Empty state
-            Icon(
-              Icons.cable,
-              size: 80,
-              color: theme.colorScheme.primary.withOpacity(0.3),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              '暂无电缆',
-              style: theme.textTheme.titleLarge?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '请扫描电缆条码添加到列表',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
     return Column(
       children: [
-        // Barcode input (always visible when location is set)
-        Padding(
-          padding: const EdgeInsets.all(16),
+        // Barcode input (always visible at top, fixed position)
+        Container(
+          color: theme.colorScheme.surface,
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8), // Reduced vertical padding
           child: BarcodeInputField(
-            label: '扫描添加电缆',
-            hint: '扫描电缆条码',
+            label: '扫描电缆条码',
+            hint: '扫码枪扫描或手动输入13位条码',
+            controller: _cableController, // Use controller for manual clearing
             onSubmit: _onCableScanned,
+            minLength: 13,
+            autoSubmitOnChange: false,
+            showKeyboard: false, // PDA模式: 禁用自动弹出键盘
+            enableInteractiveSelection: false, // 禁用文本选择
+            readOnly: false, // 保持可编辑(扫码枪可输入)
+            showCursor: true, // 显示光标
           ),
         ),
 
-        // Cable list header with count
+        const Divider(height: 1),
+
+        // Cable list header with count (moved count to right side)
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 6), // Reduced padding
           child: Row(
             children: [
+              Icon(
+                Icons.cable,
+                color: theme.colorScheme.primary,
+                size: 28,
+              ),
+              const SizedBox(width: 8),
               Text(
-                '已添加电缆 (${state.cableCount})',
-                style: theme.textTheme.titleMedium?.copyWith(
+                '添加电缆',
+                style: theme.textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                decoration: BoxDecoration(
+                  color: state.cableCount > 0
+                      ? theme.colorScheme.primaryContainer
+                      : theme.colorScheme.surfaceVariant,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '${state.cableCount} 盘',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: state.cableCount > 0
+                        ? theme.colorScheme.onPrimaryContainer
+                        : theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ),
               const Spacer(),
@@ -508,37 +492,74 @@ class _CableShelvingScreenState extends State<CableShelvingScreen> {
                   onPressed: _clearAllCables,
                   icon: Icon(Icons.clear_all, size: 20, color: theme.colorScheme.error),
                   label: Text('清空', style: TextStyle(color: theme.colorScheme.error)),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ),
                 ),
             ],
           ),
         ),
 
-        // Cable list
+        // Cable list or empty state
         Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.only(bottom: 16),
-            itemCount: state.cableList.length,
-            itemBuilder: (context, index) {
-              final cable = state.cableList[index];
-              return CableListItem(
-                index: index,
-                cable: cable,
-                onDelete: () => _onCableRemoved(cable.barcode),
-              );
-            },
-          ),
+          child: state.cableList.isEmpty
+              ? _buildEmptyState(theme)
+              : ListView.builder(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  itemCount: state.cableList.length,
+                  itemBuilder: (context, index) {
+                    final cable = state.cableList[index];
+                    return CableListItem(
+                      index: index,
+                      cable: cable,
+                      onDelete: () => _onCableRemoved(cable.barcode),
+                    );
+                  },
+                ),
         ),
       ],
     );
   }
 
+  Widget _buildEmptyState(ThemeData theme) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.cable,
+            size: 64,
+            color: theme.colorScheme.primary.withOpacity(0.3),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            '暂无电缆',
+            style: theme.textTheme.titleLarge?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '请扫描电缆条码添加',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildBottomActions(LineStockState state, ThemeData theme) {
-    if (state is! ShelvingInProgress) {
+    // Recursively find the ShelvingInProgress state
+    final shelvingState = _findShelvingState(state);
+
+    if (shelvingState == null) {
       return const SizedBox();
     }
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12), // Reduced padding to save space
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         boxShadow: [
@@ -554,18 +575,47 @@ class _CableShelvingScreenState extends State<CableShelvingScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Summary
-            ShelvingSummary(
-              targetLocation: state.targetLocation,
-              cableCount: state.cableCount,
-            ),
-            const SizedBox(height: 16),
+            // Warning message if not ready to submit
+            if (!shelvingState.canSubmit)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.errorContainer.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: theme.colorScheme.error.withOpacity(0.5),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.warning_amber_rounded,
+                      size: 20,
+                      color: theme.colorScheme.error,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        '请添加至少一盘电缆',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.error,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+            if (!shelvingState.canSubmit)
+              const SizedBox(height: 12),
 
             // Confirm button
             PrimaryButton(
-              text: '确认上架 (${state.cableCount} 条)',
+              text: '确认上架 (${shelvingState.cableCount} 盘)',
               icon: Icons.check_circle,
-              onPressed: state.canSubmit ? _confirmShelving : null,
+              onPressed: shelvingState.canSubmit ? _confirmShelving : null,
             ),
           ],
         ),
@@ -595,7 +645,7 @@ class _CableShelvingScreenState extends State<CableShelvingScreen> {
           children: [
             Text('目标库位: ${state.targetLocation}'),
             const SizedBox(height: 8),
-            Text('转移数量: ${state.transferredCount} 条电缆'),
+            Text('转移数量: ${state.transferredCount} 盘电缆'),
             const SizedBox(height: 16),
             Text(
               state.message,

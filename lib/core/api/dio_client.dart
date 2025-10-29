@@ -11,21 +11,12 @@ class DioClient {
 
   /// Get appropriate base URL based on platform and connection type
   static String get _baseUrl {
-    if (Platform.isAndroid) {
-      // For Android emulator, use 10.0.2.2 to access host's localhost
-      // For real device, use the local network IP address
-      return 'http://10.0.2.2:3000';  // Default to emulator
-    } else if (Platform.isIOS) {
-      // iOS simulator can use localhost directly
-      return 'http://localhost:3000';
-    } else {
-      // Desktop/Web
-      return 'http://localhost:3000';
-    }
+    // Use the real API server URL with IP address from documentation
+    return 'http://10.163.130.173:8001';
   }
 
-  /// Alternative URL for real devices (when emulator URL fails)
-  static const String _deviceBaseUrl = 'http://192.168.31.53:3000';
+  /// Alternative URL for real devices (when primary URL fails)
+  static const String _deviceBaseUrl = 'http://10.163.130.173:8001';
   static const _secureStorage = FlutterSecureStorage();
 
   Dio? _dio;
@@ -51,6 +42,10 @@ class DioClient {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
+      },
+      // Accept 400 as valid response for business logic errors
+      validateStatus: (status) {
+        return status != null && status >= 200 && status < 500;
       },
     ));
 
@@ -140,6 +135,10 @@ class DioClient {
           headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
+          },
+          // Accept 400 as valid response for business logic errors
+          validateStatus: (status) {
+            return status != null && status >= 200 && status < 500;
           },
         ));
 

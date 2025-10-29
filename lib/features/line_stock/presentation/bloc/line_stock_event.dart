@@ -31,6 +31,16 @@ class ClearQueryResult extends LineStockEvent {
 
 // ============ Shelving Events ============
 
+/// Start shelving with pre-filled cable from query
+class StartShelvingWithCable extends LineStockEvent {
+  final String barcode;
+
+  const StartShelvingWithCable(this.barcode);
+
+  @override
+  List<Object?> get props => [barcode];
+}
+
 /// Set target location for shelving
 class SetTargetLocation extends LineStockEvent {
   final String locationCode;

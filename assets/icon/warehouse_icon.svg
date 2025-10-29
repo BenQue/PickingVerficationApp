@@ -1,0 +1,47 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="1024" height="1024" fill="#2196F3"/>
+
+  <!-- Warehouse Building -->
+  <g fill="#FFFFFF">
+    <!-- Main building structure -->
+    <polygon points="180,850 180,430 362,300 512,240 662,300 844,430 844,850" fill="#FFFFFF"/>
+
+    <!-- Roof -->
+    <polygon points="150,430 512,200 874,430 844,430 512,240 180,430" fill="#FFFFFF" opacity="0.95"/>
+
+    <!-- Large door -->
+    <rect x="360" y="560" width="270" height="290" fill="#2196F3" rx="10"/>
+
+    <!-- Windows -->
+    <rect x="220" y="480" width="80" height="80" fill="#2196F3" rx="5"/>
+    <rect x="220" y="620" width="80" height="80" fill="#2196F3" rx="5"/>
+    <rect x="220" y="760" width="80" height="80" fill="#2196F3" rx="5"/>
+
+    <rect x="724" y="480" width="80" height="80" fill="#2196F3" rx="5"/>
+    <rect x="724" y="620" width="80" height="80" fill="#2196F3" rx="5"/>
+    <rect x="724" y="760" width="80" height="80" fill="#2196F3" rx="5"/>
+  </g>
+
+  <!-- Forklift -->
+  <g fill="#FFFFFF">
+    <!-- Forklift body -->
+    <rect x="550" y="680" width="170" height="90" rx="10"/>
+
+    <!-- Mast (vertical) -->
+    <rect x="655" y="580" width="25" height="100" rx="5"/>
+
+    <!-- Fork -->
+    <rect x="640" y="565" width="55" height="20" rx="3"/>
+
+    <!-- Wheels -->
+    <circle cx="590" cy="785" r="35" fill="#FFFFFF"/>
+    <circle cx="590" cy="785" r="25" fill="#2196F3"/>
+
+    <circle cx="680" cy="785" r="35" fill="#FFFFFF"/>
+    <circle cx="680" cy="785" r="25" fill="#2196F3"/>
+
+    <!-- Operator cabin detail -->
+    <rect x="560" y="690" width="60" height="70" fill="#2196F3" opacity="0.3" rx="5"/>
+  </g>
+</svg>

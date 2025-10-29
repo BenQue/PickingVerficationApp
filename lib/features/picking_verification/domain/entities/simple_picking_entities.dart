@@ -88,6 +88,7 @@ class SimpleWorkOrder {
   // 物料统计
   final int cableItemCount;
   final int rawItemCount;
+  final int rawMtrBatchCount;
   final int labelCount;
   
   // 按类别分组的物料
@@ -102,6 +103,7 @@ class SimpleWorkOrder {
     required this.operationStatus,
     required this.cableItemCount,
     required this.rawItemCount,
+    required this.rawMtrBatchCount,
     required this.labelCount,
     required this.cableMaterials,
     required this.centerMaterials,
@@ -185,6 +187,7 @@ class SimpleWorkOrder {
       operationStatus: operationStatus,
       cableItemCount: cableItemCount,
       rawItemCount: rawItemCount,
+      rawMtrBatchCount: rawMtrBatchCount,
       labelCount: labelCount,
       cableMaterials: _updateMaterialInList(cableMaterials, itemNo, completedQuantity),
       centerMaterials: _updateMaterialInList(centerMaterials, itemNo, completedQuantity),

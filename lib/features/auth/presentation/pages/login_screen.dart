@@ -70,6 +70,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
@@ -94,7 +95,9 @@ class _LoginScreenState extends State<LoginScreen> {
               return SingleChildScrollView(
                 child: ConstrainedBox(
                   constraints: BoxConstraints(
-                    minHeight: MediaQuery.of(context).size.height - 48,
+                    minHeight: MediaQuery.of(context).size.height > 48
+                        ? MediaQuery.of(context).size.height - 48
+                        : MediaQuery.of(context).size.height,
                   ),
                   child: Form(
                     key: _formKey,

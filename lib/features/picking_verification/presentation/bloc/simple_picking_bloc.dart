@@ -150,14 +150,20 @@ class SimplePickingBloc extends Bloc<SimplePickingEvent, SimplePickingState> {
     try {
       _currentOrderNo = event.orderNo;
       final workOrder = await repository.getWorkOrderDetails(event.orderNo);
-      
+
       emit(SimplePickingLoaded(
         workOrder: workOrder,
         isModified: false,
       ));
     } catch (e) {
+      // 提取纯错误消息,去掉"Exception: "前缀
+      String errorMessage = e.toString();
+      if (errorMessage.startsWith('Exception: ')) {
+        errorMessage = errorMessage.substring('Exception: '.length);
+      }
+
       emit(SimplePickingError(
-        message: '加载工单失败: ${e.toString()}',
+        message: errorMessage,
       ));
     }
   }
@@ -220,13 +226,13 @@ class SimplePickingBloc extends Bloc<SimplePickingEvent, SimplePickingState> {
       }
       
       emit(SimplePickingSubmitting(workOrder));
-      
+
       try {
         final success = await repository.submitVerification(
           workOrderId: workOrder.orderId,
           orderNo: workOrder.orderNo,
           operation: workOrder.operationNo,
-          status: '2', // 已完成状态
+          status: 'verfSuccess', // 校验成功状态
           workCenter: event.workCenter,
           updateBy: event.updateBy,
         );

@@ -257,6 +257,14 @@ class _SimplePickingScreenState extends State<SimplePickingScreen>
                         '${(workOrder.overallProgress * 100).toStringAsFixed(0)}%',
                         style: const TextStyle(fontSize: 16),
                       ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '原材料拣配计数: ${workOrder.rawMtrBatchCount}',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ],
                   ),
                 ],

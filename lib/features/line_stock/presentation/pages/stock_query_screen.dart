@@ -31,15 +31,24 @@ class _StockQueryScreenState extends State<StockQueryScreen> {
   }
 
   void _onBarcodeScanned(String barcode) {
-    // Query stock by barcode
+    // Query stock by barcode (validation is handled by BarcodeInputField)
     context.read<LineStockBloc>().add(
           QueryStockByBarcode(barcode: barcode),
         );
   }
 
   void _navigateToShelving() {
-    // Navigate to cable shelving screen
-    context.push('/line-stock/shelving');
+    // Get current stock from state
+    final currentState = context.read<LineStockBloc>().state;
+    if (currentState is StockQuerySuccess) {
+      // Trigger event to start shelving with this cable
+      context.read<LineStockBloc>().add(
+        StartShelvingWithCable(currentState.stock.barcode),
+      );
+      
+      // Navigate to shelving screen
+      context.push('/line-stock/shelving');
+    }
   }
 
   @override
@@ -50,6 +59,10 @@ class _StockQueryScreenState extends State<StockQueryScreen> {
       appBar: AppBar(
         title: const Text('库存查询'),
         centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.go('/workbench'),
+        ),
       ),
       body: BlocConsumer<LineStockBloc, LineStockState>(
         listener: (context, state) {
@@ -79,52 +92,16 @@ class _StockQueryScreenState extends State<StockQueryScreen> {
               children: [
                 // Barcode input section
                 Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // Title and icon
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.qr_code_scanner,
-                            size: 40,
-                            color: theme.colorScheme.primary,
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  '扫描电缆条码',
-                                  style: theme.textTheme.headlineSmall?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  '使用扫码枪扫描或手动输入',
-                                  style: theme.textTheme.bodyMedium?.copyWith(
-                                    color: theme.colorScheme.onSurfaceVariant,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-
-                      // Barcode input field
-                      BarcodeInputField(
+                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
+                  child: BarcodeInputField(
                         label: '电缆条码',
-                        hint: '扫码枪扫描或手动输入条码',
+                        hint: '扫码枪扫描或手动输入13位条码后按回车',
                         onSubmit: _onBarcodeScanned,
                         enabled: state is! LineStockLoading,
+                        minLength: 13,
+                        autoSubmitOnChange: false,
+                        showKeyboard: false, // PDA mode: disable keyboard by default
                       ),
-                    ],
-                  ),
                 ),
 
                 const Divider(height: 1),
@@ -164,15 +141,16 @@ class _StockQueryScreenState extends State<StockQueryScreen> {
 
     if (state is StockQuerySuccess) {
       return SingleChildScrollView(
+        padding: const EdgeInsets.only(bottom: 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
 
             // Stock information card
             StockInfoCard(stock: state.stock),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
 
             // Action buttons
             Padding(
@@ -201,8 +179,6 @@ class _StockQueryScreenState extends State<StockQueryScreen> {
                 ],
               ),
             ),
-
-            const SizedBox(height: 24),
           ],
         ),
       );
@@ -252,17 +228,18 @@ class _StockQueryScreenState extends State<StockQueryScreen> {
 
     // Initial state - show instructions
     return Center(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               Icons.qr_code_2,
-              size: 120,
+              size: 80,
               color: theme.colorScheme.primary.withOpacity(0.3),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
             Text(
               '请扫描电缆条码',
               style: theme.textTheme.headlineMedium?.copyWith(

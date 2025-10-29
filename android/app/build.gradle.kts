@@ -24,7 +24,7 @@ android {
         applicationId = "com.example.picking_verification_app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = 30 // Android 11 compatibility
+        minSdk = 29 // Android 10/11 compatibility (CRUISE Ge2)
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -35,6 +35,10 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+
+            // Optimization for CRUISE Ge2 PDA
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
 }

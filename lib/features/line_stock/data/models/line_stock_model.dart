@@ -32,7 +32,7 @@ class LineStockModel {
       baseUnit: json['baseUnit'] as String?,
       batchCode: json['batchCode'] as String?,
       locationCode: json['locationCode'] as String?,
-      barcode: json['barcode'] as String?,
+      barcode: json['barCode'] as String?, // API uses 'barCode' with capital C
     );
   }
 
@@ -56,7 +56,7 @@ class LineStockModel {
       materialCode: materialCode ?? '',
       materialDesc: materialDesc ?? '',
       quantity: quantity ?? 0.0,
-      baseUnit: baseUnit ?? 'PCS',
+      baseUnit: '米', // Temporarily fixed to '米' until server provides correct unit
       batchCode: batchCode ?? '',
       locationCode: locationCode ?? '',
       barcode: barcode ?? '',

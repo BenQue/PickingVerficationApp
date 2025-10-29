@@ -20,11 +20,11 @@ class SimpleMaterialItem {
 
   factory SimpleMaterialItem.fromJson(Map<String, dynamic> json) {
     return SimpleMaterialItem(
-      itemNo: json['itemNo'] as String,
-      materialCode: json['materialCode'] as String,
-      materialDesc: json['materialDesc'] as String,
-      quantity: json['quantity'] as int,
-      completedQuantity: json['completedQuantity'] as int,
+      itemNo: json['itemNo'] as String? ?? '',
+      materialCode: json['materialCode'] as String? ?? '',
+      materialDesc: json['materialDesc'] as String? ?? '',
+      quantity: (json['quantity'] as num? ?? 0).toInt(),
+      completedQuantity: (json['completedQuantity'] as num? ?? 0).toInt(),
     );
   }
 
@@ -79,10 +79,11 @@ class WorkOrderData {
   final String operationStatus;
   final int cableItemCount;
   final int rawItemCount;
+  final int rawMtrBatchCount;
   final int labelCount;
   
   // 三种物料类别
-  final List<SimpleMaterialItem> cabelItems;      // 断线物料
+  final List<SimpleMaterialItem> cableItems;      // 断线物料 (电缆物料)
   final List<SimpleMaterialItem> centerStockItems; // 中央仓库物料
   final List<SimpleMaterialItem> autoStockItems;   // 自动化仓库物料
 
@@ -93,22 +94,24 @@ class WorkOrderData {
     required this.operationStatus,
     required this.cableItemCount,
     required this.rawItemCount,
+    required this.rawMtrBatchCount,
     required this.labelCount,
-    required this.cabelItems,
+    required this.cableItems,
     required this.centerStockItems,
     required this.autoStockItems,
   });
 
   factory WorkOrderData.fromJson(Map<String, dynamic> json) {
     return WorkOrderData(
-      orderId: json['orderId'] as int,
+      orderId: (json['orderId'] as num).toInt(),
       orderNo: json['orderNo'] as String,
       operationNo: json['operationNo'] as String,
       operationStatus: json['operationStatus'] as String,
-      cableItemCount: json['cableItemCount'] as int,
-      rawItemCount: json['rawItemCount'] as int,
-      labelCount: json['labelCount'] as int,
-      cabelItems: (json['cabelItems'] as List<dynamic>? ?? [])
+      cableItemCount: (json['cableItemCount'] as num? ?? 0).toInt(),
+      rawItemCount: (json['rawItemCount'] as num? ?? 0).toInt(),
+      rawMtrBatchCount: (json['rawMtrBatchCount'] as num? ?? 0).toInt(),
+      labelCount: (json['labelCount'] as num? ?? 0).toInt(),
+      cableItems: (json['cableItems'] as List<dynamic>? ?? [])
           .map((item) => SimpleMaterialItem.fromJson(item as Map<String, dynamic>))
           .toList(),
       centerStockItems: (json['centerStockItems'] as List<dynamic>? ?? [])
@@ -122,7 +125,7 @@ class WorkOrderData {
 
   /// 获取所有物料项
   List<SimpleMaterialItem> get allItems {
-    return [...cabelItems, ...centerStockItems, ...autoStockItems];
+    return [...cableItems, ...centerStockItems, ...autoStockItems];
   }
 
   /// 获取总物料数量
@@ -145,7 +148,7 @@ class WorkOrderData {
   /// 按类别获取完成状态
   Map<String, bool> get categoryCompletionStatus {
     return {
-      '断线物料': cabelItems.every((item) => item.isCompleted),
+      '断线物料': cableItems.every((item) => item.isCompleted),
       '中央仓库物料': centerStockItems.every((item) => item.isCompleted),
       '自动化仓库物料': autoStockItems.every((item) => item.isCompleted),
     };

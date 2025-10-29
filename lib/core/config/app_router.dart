@@ -34,6 +34,7 @@ import '../../features/picking_verification/data/repositories/simple_picking_rep
 import '../../features/picking_verification/data/datasources/simple_picking_datasource.dart';
 import '../../features/line_stock/presentation/pages/stock_query_screen.dart';
 import '../../features/line_stock/presentation/pages/cable_shelving_screen.dart';
+import '../../features/line_stock/presentation/pages/cable_return_screen.dart';
 import '../../features/line_stock/presentation/bloc/line_stock_bloc.dart';
 import '../../features/line_stock/data/repositories/line_stock_repository_impl.dart';
 import '../../features/line_stock/data/datasources/line_stock_remote_datasource.dart';
@@ -52,6 +53,7 @@ class AppRouter {
   static const String lineDeliveryRoute = '/line-delivery';
   static const String lineStockQueryRoute = '/line-stock';
   static const String lineStockShelvingRoute = '/line-stock/shelving';
+  static const String lineStockReturnRoute = '/line-stock/return';
 
   static const _secureStorage = FlutterSecureStorage();
 
@@ -271,34 +273,47 @@ class AppRouter {
         builder: (context, state) => const LineDeliveryScreen(),
       ),
 
-      // Line Stock routes
-      GoRoute(
-        path: lineStockQueryRoute,
-        name: 'line-stock-query',
-        builder: (context, state) => BlocProvider(
-          create: (context) => LineStockBloc(
-            repository: LineStockRepositoryImpl(
-              remoteDataSource: LineStockRemoteDataSource(
-                dio: DioClient().dio,
+      // Line Stock routes - shared BLoC for query and shelving
+      ShellRoute(
+        builder: (context, state, child) {
+          // Shared BLoC provider for line stock query and shelving screens
+          return BlocProvider(
+            create: (context) => LineStockBloc(
+              repository: LineStockRepositoryImpl(
+                remoteDataSource: LineStockRemoteDataSourceImpl(
+                  dio: DioClient().dio,
+                ),
               ),
             ),
+            child: child,
+          );
+        },
+        routes: [
+          GoRoute(
+            path: lineStockQueryRoute,
+            name: 'line-stock-query',
+            builder: (context, state) => const StockQueryScreen(),
           ),
-          child: const StockQueryScreen(),
-        ),
+          GoRoute(
+            path: lineStockShelvingRoute,
+            name: 'line-stock-shelving',
+            builder: (context, state) => const CableShelvingScreen(),
+          ),
+        ],
       ),
 
       GoRoute(
-        path: lineStockShelvingRoute,
-        name: 'line-stock-shelving',
+        path: lineStockReturnRoute,
+        name: 'line-stock-return',
         builder: (context, state) => BlocProvider(
           create: (context) => LineStockBloc(
             repository: LineStockRepositoryImpl(
-              remoteDataSource: LineStockRemoteDataSource(
+              remoteDataSource: LineStockRemoteDataSourceImpl(
                 dio: DioClient().dio,
               ),
             ),
           ),
-          child: const CableShelvingScreen(),
+          child: const CableReturnScreen(),
         ),
       ),
     ],

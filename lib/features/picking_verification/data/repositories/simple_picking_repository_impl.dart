@@ -102,8 +102,9 @@ class SimplePickingRepositoryImpl implements SimplePickingRepository {
       operationStatus: data.operationStatus,
       cableItemCount: data.cableItemCount,
       rawItemCount: data.rawItemCount,
+      rawMtrBatchCount: data.rawMtrBatchCount,
       labelCount: data.labelCount,
-      cableMaterials: _convertMaterials(data.cabelItems, MaterialCategoryType.cable),
+      cableMaterials: _convertMaterials(data.cableItems, MaterialCategoryType.cable),
       centerMaterials: _convertMaterials(data.centerStockItems, MaterialCategoryType.center),
       autoMaterials: _convertMaterials(data.autoStockItems, MaterialCategoryType.auto),
     );

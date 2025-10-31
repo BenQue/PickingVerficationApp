@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/theme/workbench_theme.dart';
 
 class PlatformReceivingScreen extends StatelessWidget {
   final String? orderNumber;
@@ -123,27 +124,24 @@ class PlatformReceivingScreen extends StatelessWidget {
             
             const Spacer(),
             
-            // Action buttons
-            ElevatedButton.icon(
-              onPressed: () => context.go('/tasks'),
-              icon: const Icon(Icons.list),
-              label: const Text('返回任务列表'),
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.all(16),
-                textStyle: const TextStyle(fontSize: 18),
+            // Action buttons - 使用统一风格
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => context.go('/tasks'),
+                icon: const Icon(Icons.list, size: 28),
+                label: const Text('返回任务列表'),
+                style: WorkbenchTheme.getPrimaryButtonStyle(context),
               ),
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             TextButton.icon(
               onPressed: () => _showFeatureRequest(context),
               icon: const Icon(Icons.lightbulb_outline),
               label: const Text('功能建议反馈'),
-              style: TextButton.styleFrom(
-                padding: const EdgeInsets.all(16),
-                textStyle: const TextStyle(fontSize: 16),
-              ),
+              style: WorkbenchTheme.getTextButtonStyle(context),
             ),
           ],
         ),

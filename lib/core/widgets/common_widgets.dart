@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import '../theme/workbench_theme.dart';
 
 /// Collection of common widgets used throughout the application
 /// Designed for industrial PDA use with high contrast and large touch targets
 
 /// Primary action button with consistent styling
+/// 灰色（禁用）→ 蓝色（启用）
 class PrimaryButton extends StatelessWidget {
   final String text;
   final VoidCallback? onPressed;
@@ -20,26 +22,48 @@ class PrimaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isEnabled = !isLoading && onPressed != null;
+
     return SizedBox(
       width: double.infinity,
       height: 56, // Large touch target for gloved hands
       child: ElevatedButton(
         onPressed: isLoading ? null : onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: isEnabled
+              ? WorkbenchTheme.primaryButtonColor // 蓝色
+              : Colors.grey.shade400, // 灰色
+          foregroundColor: Colors.white,
+          disabledBackgroundColor: Colors.grey.shade400,
+          disabledForegroundColor: Colors.white70,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(WorkbenchTheme.buttonBorderRadius),
+          ),
+          elevation: 2,
+          textStyle: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         child: isLoading
             ? const SizedBox(
                 width: 24,
                 height: 24,
-                child: CircularProgressIndicator(strokeWidth: 2),
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
               )
             : Row(
                 mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   if (icon != null) ...[
-                    Icon(icon, size: 20),
+                    Icon(icon, size: 24),
                     const SizedBox(width: 8),
                   ],
-                  Text(text, style: const TextStyle(fontSize: 16)),
+                  Text(text),
                 ],
               ),
       ),

@@ -32,6 +32,9 @@ class BarcodeInputField extends StatefulWidget {
   /// Optional TextEditingController for external control
   final TextEditingController? controller;
 
+  /// Optional FocusNode for external focus control
+  final FocusNode? focusNode;
+
   /// Minimum barcode length (default: 3)
   final int minLength;
 
@@ -61,6 +64,7 @@ class BarcodeInputField extends StatefulWidget {
     this.enabled = true,
     this.prefixIcon,
     this.controller,
+    this.focusNode,
     this.minLength = 3,
     this.autoSubmitOnChange = false,
     this.showKeyboard = true,
@@ -84,9 +88,9 @@ class _BarcodeInputFieldState extends State<BarcodeInputField> {
   void initState() {
     super.initState();
     _controller = widget.controller ?? TextEditingController();
-    _focusNode = FocusNode();
+    _focusNode = widget.focusNode ?? FocusNode();
     _controller.addListener(_onTextChanged);
-    
+
     // Initialize keyboard state based on showKeyboard parameter
     _shouldShowKeyboard = widget.showKeyboard;
   }
@@ -95,7 +99,10 @@ class _BarcodeInputFieldState extends State<BarcodeInputField> {
   void dispose() {
     _debounce?.cancel();
     _controller.removeListener(_onTextChanged);
-    _focusNode.dispose();
+    // Only dispose if we created the focus node
+    if (widget.focusNode == null) {
+      _focusNode.dispose();
+    }
     // Only dispose if we created the controller
     if (widget.controller == null) {
       _controller.dispose();

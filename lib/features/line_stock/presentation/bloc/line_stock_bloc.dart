@@ -165,12 +165,14 @@ class LineStockBloc extends Bloc<LineStockEvent, LineStockState> {
       shelvingState = _findShelvingState(currentState.previousState!);
     }
 
+    // If no shelving state exists, create a new one without target location
+    // This allows adding cables before setting the target location
     if (shelvingState == null) {
-      emit(const LineStockError(
-        message: '请先设置目标库位',
-        canRetry: false,
-      ));
-      return;
+      shelvingState = const ShelvingInProgress(
+        targetLocation: null,
+        cableList: [],
+        canSubmit: false,
+      );
     }
 
     // Check for duplicate barcode using the found shelving state
@@ -211,8 +213,9 @@ class LineStockBloc extends Bloc<LineStockEvent, LineStockState> {
         // Don't auto-recover - let UI handle display with previousState
       },
 (stock) {
-        // Check if cable is already at target location
-        if (stock.locationCode == stateBeforeLoading.targetLocation) {
+        // Check if cable is already at target location (only if target location is set)
+        if (stateBeforeLoading.hasTargetLocation &&
+            stock.locationCode == stateBeforeLoading.targetLocation) {
           emit(LineStockError(
             message: '电缆已在目标库位 ${stateBeforeLoading.targetLocation},无需转移',
             canRetry: true,

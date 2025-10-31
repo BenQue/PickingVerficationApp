@@ -6,6 +6,7 @@ import 'simple_picking_screen.dart';
 import '../../data/repositories/simple_picking_repository_impl.dart';
 import '../../data/datasources/simple_picking_datasource.dart';
 import '../../../../core/api/dio_client.dart';
+import '../../../../core/theme/workbench_theme.dart';
 
 /// 工作台首页 - 模拟登录后的主界面
 class WorkbenchHomeScreen extends StatelessWidget {
@@ -23,18 +24,25 @@ class WorkbenchHomeScreen extends StatelessWidget {
         backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Colors.white,
         actions: [
-          // 模拟用户信息
+          // 用户信息 - 可点击查看版本
           Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: Row(
-              children: [
-                const Icon(Icons.person, size: 20),
-                const SizedBox(width: 4),
-                Text(
-                  '操作员001',
-                  style: const TextStyle(fontSize: 16),
-                ),
-              ],
+            padding: const EdgeInsets.only(right: 8),
+            child: TextButton(
+              onPressed: () => _showUserInfo(context),
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.person, size: 20, color: Colors.white),
+                  const SizedBox(width: 4),
+                  const Text(
+                    '操作员001',
+                    style: TextStyle(fontSize: 16, color: Colors.white),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -158,7 +166,7 @@ class WorkbenchHomeScreen extends StatelessWidget {
     );
   }
 
-  /// 构建启用的功能卡片
+  /// 构建启用的功能卡片 - 使用统一主题
   Widget _buildFeatureCard({
     required BuildContext context,
     required IconData icon,
@@ -167,97 +175,29 @@ class WorkbenchHomeScreen extends StatelessWidget {
     required Color color,
     required VoidCallback onTap,
   }) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            gradient: LinearGradient(
-              colors: [
-                color.withOpacity(0.9),
-                color.withOpacity(0.7),
-              ],
-            ),
-          ),
-          child: Column(
-            children: [
-              Icon(
-                icon,
-                size: 40,
-                color: Colors.white,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                subtitle,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: Colors.white70,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+    return WorkbenchTheme.buildFeatureMenuCard(
+      context: context,
+      icon: icon,
+      iconColor: color,
+      title: title,
+      subtitle: subtitle,
+      onTap: onTap,
+      backgroundColor: color.withOpacity(0.1),
     );
   }
 
-  /// 构建禁用的功能卡片
+  /// 构建禁用的功能卡片 - 使用统一主题
   Widget _buildDisabledFeatureCard({
+    required BuildContext context,
     required IconData icon,
     required String title,
-    required String subtitle,
+    required Color baseColor,
   }) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      color: Colors.grey.shade100,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Icon(
-              icon,
-              size: 40,
-              color: Colors.grey.shade400,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey.shade500,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey.shade400,
-              ),
-            ),
-          ],
-        ),
-      ),
+    return WorkbenchTheme.buildDevelopingMenuCard(
+      context: context,
+      icon: icon,
+      iconColor: baseColor,
+      title: title,
     );
   }
 
@@ -298,14 +238,29 @@ class WorkbenchHomeScreen extends StatelessWidget {
   Widget _buildMaterialPickingGroup(BuildContext context) {
     return Column(
       children: [
-        // 第一行：合箱校验
-        _buildFeatureCard(
-          context: context,
-          icon: Icons.inventory_2,
-          title: '合箱校验',
-          subtitle: '扫描工单进行物料校验',
-          color: Colors.blue,
-          onTap: () => _navigateToPickingVerification(context),
+        // 第一行：合箱校验和订单查询
+        Row(
+          children: [
+            Expanded(
+              child: _buildFeatureCard(
+                context: context,
+                icon: Icons.inventory_2,
+                title: '合箱校验',
+                subtitle: '工单物料拣配校验',
+                color: const Color(0xFF2196F3), // 明亮蓝色 Material Blue 500
+                onTap: () => _navigateToPickingVerification(context),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildDisabledFeatureCard(
+                context: context,
+                icon: Icons.search,
+                title: '订单查询',
+                baseColor: const Color(0xFF2196F3),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 12),
         // 第二行：平台收料和产线配送
@@ -313,17 +268,19 @@ class WorkbenchHomeScreen extends StatelessWidget {
           children: [
             Expanded(
               child: _buildDisabledFeatureCard(
+                context: context,
                 icon: Icons.input,
                 title: '平台收料',
-                subtitle: '暂未开放',
+                baseColor: const Color(0xFF2196F3),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: _buildDisabledFeatureCard(
+                context: context,
                 icon: Icons.local_shipping,
                 title: '产线配送',
-                subtitle: '暂未开放',
+                baseColor: const Color(0xFF2196F3),
               ),
             ),
           ],
@@ -336,49 +293,223 @@ class WorkbenchHomeScreen extends StatelessWidget {
   Widget _buildLineStockGroup(BuildContext context) {
     return Column(
       children: [
-        // 第一行：库存查询和电缆上架
+        // 第一行：电缆上架和电缆下架
         Row(
           children: [
+            Expanded(
+              child: _buildFeatureCard(
+                context: context,
+                icon: Icons.upload,
+                title: '电缆上架',
+                subtitle: '电缆上架或转移',
+                color: const Color(0xFFFF9800), // 明亮橙色 Material Orange 500
+                onTap: () => _navigateToShelving(context),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildFeatureCard(
+                context: context,
+                icon: Icons.download,
+                title: '电缆下架',
+                subtitle: '下架到线边库',
+                color: const Color(0xFF9C27B0), // 明亮紫色 Material Purple 500
+                onTap: () => _navigateToRemoval(context),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        // 第二行：电缆退库和库存查询
+        Row(
+          children: [
+            Expanded(
+              child: _buildDisabledFeatureCard(
+                context: context,
+                icon: Icons.unarchive,
+                title: '电缆退库',
+                baseColor: const Color(0xFF4CAF50),
+              ),
+            ),
+            const SizedBox(width: 12),
             Expanded(
               child: _buildFeatureCard(
                 context: context,
                 icon: Icons.search,
                 title: '库存查询',
                 subtitle: '扫码查询',
-                color: Colors.green,
+                color: const Color(0xFF4CAF50), // 明亮绿色 Material Green 500
                 onTap: () => _navigateToStockQuery(context),
               ),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildFeatureCard(
-                context: context,
-                icon: Icons.upload,
-                title: '电缆上架',
-                subtitle: '断线上架',
-                color: Colors.orange,
-                onTap: () => _navigateToShelving(context),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        // 第二行：电缆退库（暂未开放）
-        Row(
-          children: [
-            Expanded(
-              child: _buildDisabledFeatureCard(
-                icon: Icons.unarchive,
-                title: '电缆退库',
-                subtitle: '暂未开放',
-              ),
-            ),
-            const SizedBox(width: 12),
-            // 占位，保持对称
-            Expanded(child: Container()),
           ],
         ),
       ],
+    );
+  }
+
+  /// 显示用户信息和版本号 - 紧凑优化版
+  void _showUserInfo(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 280),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // 标题栏
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(12),
+                    topRight: Radius.circular(12),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, 
+                      color: Theme.of(context).colorScheme.primary, 
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      '应用信息',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.close, size: 20),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                  ],
+                ),
+              ),
+              // 内容区
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 用户信息 - 紧凑版
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.blue.shade200, width: 1),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.person, size: 28, color: Colors.blue.shade700),
+                          const SizedBox(width: 10),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '当前用户',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              const Text(
+                                '操作员001',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    // 应用信息 - 紧凑版
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.green.shade200, width: 1),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.apps, size: 18, color: Colors.green.shade700),
+                              const SizedBox(width: 6),
+                              Text(
+                                '应用名称',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          const Padding(
+                            padding: EdgeInsets.only(left: 24),
+                            child: Text(
+                              '仓库应用',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Icon(Icons.verified, size: 18, color: Colors.green.shade700),
+                              const SizedBox(width: 6),
+                              Text(
+                                '版本号',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          const Padding(
+                            padding: EdgeInsets.only(left: 24),
+                            child: Text(
+                              'V1.3.2',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -390,6 +521,11 @@ class WorkbenchHomeScreen extends StatelessWidget {
   /// 导航到电缆上架功能
   void _navigateToShelving(BuildContext context) {
     context.go('/line-stock/shelving');
+  }
+
+  /// 导航到电缆下架功能
+  void _navigateToRemoval(BuildContext context) {
+    context.go('/line-stock/removal');
   }
 
   /// 导航到电缆退库功能

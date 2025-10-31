@@ -78,6 +78,57 @@ flutter pub outdated
 ./scripts/test_mock_data.sh
 ```
 
+### Version Release Checklist
+
+**IMPORTANT**: When releasing a new version, follow this checklist to ensure all version numbers are updated:
+
+1. **Update `pubspec.yaml` version**
+   - Location: `pubspec.yaml` line 19
+   - Format: `version: X.Y.Z+BUILD_NUMBER`
+   - Example: `version: 1.3.0+30`
+
+2. **Update UI display version in Workbench**
+   - Location: `lib/features/picking_verification/presentation/pages/workbench_home_screen.dart`
+   - Search for: `'V1.` (version display in employee info dialog)
+   - Update the Text widget content to match new version
+   - Example: Change `'V1.2.1'` to `'V1.3.0'`
+
+3. **Build and Release**
+   ```bash
+   # Clean build
+   flutter clean
+
+   # Build release APK
+   flutter build apk --release
+
+   # Copy to releases directory with consistent naming
+   cp build/app/outputs/flutter-apk/app-release.apk releases/warehouse-app-vX.Y.Z-buildNN.apk
+   ```
+
+4. **Create Release Documentation**
+   - Create `releases/RELEASE_NOTES_vX.Y.Z.md` with changelog
+   - Include feature descriptions, bug fixes, and breaking changes
+   - Document installation instructions
+
+5. **Install to Device**
+   ```bash
+   # Check device connection
+   adb devices
+
+   # Install to connected device
+   adb install -r releases/warehouse-app-vX.Y.Z-buildNN.apk
+
+   # Verify installation
+   adb shell dumpsys package com.example.picking_verification_app | grep versionName
+   ```
+
+6. **Verify Version Display**
+   - Launch app on device
+   - Tap employee info button (top-right corner)
+   - Confirm version number matches the release version
+
+**Note**: Always use consistent naming convention `warehouse-app` for all release files and documentation.
+
 ## Architecture Overview
 
 **Architecture Pattern:** Clean Architecture with feature-first organization

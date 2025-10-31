@@ -32,7 +32,8 @@ class CableShelvingScreen extends StatefulWidget {
 class _CableShelvingScreenState extends State<CableShelvingScreen> {
   final _locationController = TextEditingController();
   final _cableController = TextEditingController(); // Controller for cable barcode input
-  bool _isLocationSet = false;
+  final _cableFocusNode = FocusNode(); // Focus node for cable input
+  final _locationFocusNode = FocusNode(); // Focus node for location input
   int _previousCableCount = 0; // Track previous cable count to detect successful additions
 
   @override
@@ -42,12 +43,19 @@ class _CableShelvingScreenState extends State<CableShelvingScreen> {
     _locationController.addListener(() {
       setState(() {});
     });
+
+    // Set default focus to cable input after first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _cableFocusNode.requestFocus();
+    });
   }
 
   @override
   void dispose() {
     _locationController.dispose();
     _cableController.dispose();
+    _cableFocusNode.dispose();
+    _locationFocusNode.dispose();
     super.dispose();
   }
 
@@ -68,9 +76,6 @@ class _CableShelvingScreenState extends State<CableShelvingScreen> {
       context.read<LineStockBloc>().add(
             SetTargetLocation(location),
           );
-      setState(() {
-        _isLocationSet = true;
-      });
     }
   }
 
@@ -79,9 +84,6 @@ class _CableShelvingScreenState extends State<CableShelvingScreen> {
     // BLoC will preserve cable list
     _locationController.clear();
     context.read<LineStockBloc>().add(const ModifyTargetLocation());
-    setState(() {
-      _isLocationSet = false;
-    });
   }
 
   void _onCableScanned(String barcode) {
@@ -268,28 +270,21 @@ class _CableShelvingScreenState extends State<CableShelvingScreen> {
           return SafeArea(
             child: Column(
               children: [
-                // Step 1: Target Location Input (scrollable)
-                if (!_isLocationSet)
-                  Expanded(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: _buildLocationInput(theme),
-                    ),
-                  )
+                // Target Location Section (always visible)
+                if (displayState is ShelvingInProgress && displayState.hasTargetLocation)
+                  _buildLocationDisplay(displayState, theme)
                 else
-                  _buildLocationDisplay(displayState, theme),
+                  _buildLocationInput(theme),
 
-                if (_isLocationSet) const Divider(height: 1),
+                const Divider(height: 1),
 
-                // Step 2: Cable List
-                if (_isLocationSet) ...[
-                  Expanded(
-                    child: _buildCableListSection(displayState, theme),
-                  ),
+                // Cable List Section (always visible)
+                Expanded(
+                  child: _buildCableListSection(displayState, theme),
+                ),
 
-                  // Bottom action bar
-                  _buildBottomActions(displayState, theme),
-                ],
+                // Bottom action bar
+                _buildBottomActions(displayState, theme),
               ],
             ),
           );
@@ -299,41 +294,41 @@ class _CableShelvingScreenState extends State<CableShelvingScreen> {
   }
 
   Widget _buildLocationInput(ThemeData theme) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        border: Border(
+          bottom: BorderSide(
+            color: theme.colorScheme.outlineVariant,
+            width: 1,
+          ),
+        ),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
             children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primaryContainer,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.warehouse,
-                  color: theme.colorScheme.onPrimaryContainer,
-                  size: 24,
-                ),
+              Icon(
+                Icons.warehouse,
+                size: 28,
+                color: theme.colorScheme.primary,
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '设置目标库位',
-                      style: theme.textTheme.headlineSmall?.copyWith(
+                      '目标库位',
+                      style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: 4),
                     Text(
-                      '扫描或输入目标库位代码',
-                      style: theme.textTheme.bodyMedium?.copyWith(
+                      '可选 - 先扫描电缆或先设置库位',
+                      style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
                     ),
@@ -342,24 +337,33 @@ class _CableShelvingScreenState extends State<CableShelvingScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 20),
-          BarcodeInputField(
-            label: '目标库位',
-            hint: '扫描或输入库位代码(至少4位)',
-            controller: _locationController,
-            prefixIcon: Icons.location_on,
-            minLength: 4,
-            autoSubmitOnChange: false,
-            showKeyboard: false, // PDA模式: 禁用自动弹出键盘
-            onSubmit: (_) => _setTargetLocation(),
-          ),
-          const SizedBox(height: 16),
-          PrimaryButton(
-            text: '确认库位',
-            icon: Icons.check,
-            onPressed: _locationController.text.trim().length >= 4
-                ? _setTargetLocation
-                : null,
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: BarcodeInputField(
+                  label: '',
+                  hint: '扫描或输入库位代码(至少4位)',
+                  controller: _locationController,
+                  focusNode: _locationFocusNode,
+                  prefixIcon: Icons.location_on,
+                  minLength: 4,
+                  autoSubmitOnChange: false,
+                  showKeyboard: false,
+                  onSubmit: (_) => _setTargetLocation(),
+                ),
+              ),
+              const SizedBox(width: 8),
+              SizedBox(
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: _locationController.text.trim().length >= 4
+                      ? _setTargetLocation
+                      : null,
+                  child: const Text('确认'),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -424,9 +428,15 @@ class _CableShelvingScreenState extends State<CableShelvingScreen> {
   }
 
   Widget _buildCableListSection(LineStockState state, ThemeData theme) {
-    if (state is! ShelvingInProgress) {
-      return const SizedBox();
-    }
+    // Try to find ShelvingInProgress state
+    final shelvingState = _findShelvingState(state);
+
+    // If no shelving state, create an empty one to allow cable scanning
+    final displayState = shelvingState ?? const ShelvingInProgress(
+      targetLocation: null,
+      cableList: [],
+      canSubmit: false,
+    );
 
     return Column(
       children: [
@@ -438,6 +448,7 @@ class _CableShelvingScreenState extends State<CableShelvingScreen> {
             label: '扫描电缆条码',
             hint: '扫码枪扫描或手动输入13位条码',
             controller: _cableController, // Use controller for manual clearing
+            focusNode: _cableFocusNode,
             onSubmit: _onCableScanned,
             minLength: 13,
             autoSubmitOnChange: false,
@@ -471,23 +482,23 @@ class _CableShelvingScreenState extends State<CableShelvingScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 decoration: BoxDecoration(
-                  color: state.cableCount > 0
+                  color: displayState.cableCount > 0
                       ? theme.colorScheme.primaryContainer
                       : theme.colorScheme.surfaceVariant,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  '${state.cableCount} 盘',
+                  '${displayState.cableCount} 盘',
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: state.cableCount > 0
+                    color: displayState.cableCount > 0
                         ? theme.colorScheme.onPrimaryContainer
                         : theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
               ),
               const Spacer(),
-              if (state.cableCount > 0)
+              if (displayState.cableCount > 0)
                 TextButton.icon(
                   onPressed: _clearAllCables,
                   icon: Icon(Icons.clear_all, size: 20, color: theme.colorScheme.error),
@@ -502,13 +513,13 @@ class _CableShelvingScreenState extends State<CableShelvingScreen> {
 
         // Cable list or empty state
         Expanded(
-          child: state.cableList.isEmpty
+          child: displayState.cableList.isEmpty
               ? _buildEmptyState(theme)
               : ListView.builder(
                   padding: const EdgeInsets.only(bottom: 16),
-                  itemCount: state.cableList.length,
+                  itemCount: displayState.cableList.length,
                   itemBuilder: (context, index) {
-                    final cable = state.cableList[index];
+                    final cable = displayState.cableList[index];
                     return CableListItem(
                       index: index,
                       cable: cable,
@@ -597,7 +608,11 @@ class _CableShelvingScreenState extends State<CableShelvingScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        '请添加至少一盘电缆',
+                        shelvingState.hasTargetLocation
+                            ? '请添加至少一盘电缆'
+                            : shelvingState.hasCables
+                                ? '请设置目标库位'
+                                : '请设置目标库位并添加电缆',
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: theme.colorScheme.error,
                           fontWeight: FontWeight.w500,
@@ -667,10 +682,7 @@ class _CableShelvingScreenState extends State<CableShelvingScreen> {
               Navigator.of(dialogContext).pop();
               // Reset and continue
               context.read<LineStockBloc>().add(const ResetShelving());
-              setState(() {
-                _isLocationSet = false;
-                _locationController.clear();
-              });
+              _locationController.clear();
             },
             child: const Text('继续上架'),
           ),

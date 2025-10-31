@@ -11,6 +11,7 @@ import '../widgets/verification_status_widget.dart';
 import '../widgets/order_scanning_widget.dart';
 import '../widgets/manual_input_widget.dart';
 import '../widgets/material_list_widget.dart';
+import '../../../../core/theme/workbench_theme.dart';
 
 /// 拣货校验屏幕
 class PickingVerificationScreen extends StatefulWidget {
@@ -232,14 +233,9 @@ class _PickingVerificationScreenState extends State<PickingVerificationScreen> {
           width: double.infinity,
           child: ElevatedButton.icon(
             onPressed: () => _retryOperation(context, state),
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh, size: 28),
             label: const Text('重试'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue.shade600,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.all(16),
-              textStyle: const TextStyle(fontSize: 18),
-            ),
+            style: WorkbenchTheme.getPrimaryButtonStyle(context),
           ),
         ),
         const SizedBox(height: 12),
@@ -247,10 +243,7 @@ class _PickingVerificationScreenState extends State<PickingVerificationScreen> {
           onPressed: () => context.read<PickingVerificationBloc>().add(ResetPickingVerificationEvent()),
           icon: const Icon(Icons.restart_alt),
           label: const Text('重新开始'),
-          style: TextButton.styleFrom(
-            padding: const EdgeInsets.all(16),
-            textStyle: const TextStyle(fontSize: 16),
-          ),
+          style: WorkbenchTheme.getTextButtonStyle(context),
         ),
       ],
     );
@@ -376,12 +369,9 @@ class _PickingVerificationScreenState extends State<PickingVerificationScreen> {
           width: double.infinity,
           child: ElevatedButton.icon(
             onPressed: () => _handleBackNavigation(context),
-            icon: const Icon(Icons.list),
+            icon: const Icon(Icons.list, size: 28),
             label: const Text('返回任务列表'),
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.all(16),
-              textStyle: const TextStyle(fontSize: 18),
-            ),
+            style: WorkbenchTheme.getPrimaryButtonStyle(context),
           ),
         ),
         const SizedBox(height: 12),
@@ -389,10 +379,7 @@ class _PickingVerificationScreenState extends State<PickingVerificationScreen> {
           onPressed: () => _showFeatureRequest(context),
           icon: const Icon(Icons.lightbulb_outline),
           label: const Text('功能建议反馈'),
-          style: TextButton.styleFrom(
-            padding: const EdgeInsets.all(16),
-            textStyle: const TextStyle(fontSize: 16),
-          ),
+          style: WorkbenchTheme.getTextButtonStyle(context),
         ),
       ],
     );

@@ -12,6 +12,9 @@ class LineStockConstants {
   static const Duration scanDebounce = Duration(milliseconds: 100);
   static const Duration errorDisplayDuration = Duration(seconds: 2);
 
+  // Fixed Locations
+  static const String lineStockLocation = '2200-100';
+  
   // Messages
   static const String querySuccessMessage = '查询成功';
   static const String transferSuccessMessage = '转移成功';

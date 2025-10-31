@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/picking_verification_bloc.dart';
 import '../bloc/picking_verification_event.dart';
+import '../../../../core/theme/workbench_theme.dart';
 
 /// 手动输入订单号组件
 /// 提供备用的手动输入方式
@@ -117,11 +118,11 @@ class _ManualInputWidgetState extends State<ManualInputWidget> {
           ),
           const SizedBox(height: 12),
           
-          // 输入框
+          // 输入框 - 使用统一风格
           TextField(
             controller: _controller,
             focusNode: _focusNode,
-            decoration: InputDecoration(
+            decoration: WorkbenchTheme.getInputDecoration(
               hintText: '例如: ORD20250905001',
               errorText: _errorText,
               prefixIcon: const Icon(
@@ -139,42 +140,8 @@ class _ManualInputWidgetState extends State<ManualInputWidget> {
                       },
                     )
                   : null,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(width: 2),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  width: 2,
-                  color: Colors.grey.shade400,
-                ),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  width: 3,
-                  color: Theme.of(context).primaryColor,
-                ),
-              ),
-              errorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(
-                  width: 2,
-                  color: Colors.red,
-                ),
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 20,
-              ),
-              hintStyle: const TextStyle(fontSize: 18),
-              errorStyle: const TextStyle(fontSize: 16),
             ),
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w500,
-            ),
+            style: WorkbenchTheme.inputTextStyle,
             textCapitalization: TextCapitalization.characters,
             inputFormatters: [
               // 转换为大写
@@ -201,47 +168,29 @@ class _ManualInputWidgetState extends State<ManualInputWidget> {
           
           const SizedBox(height: 32),
           
-          // 确认按钮
-          ElevatedButton(
-            onPressed: _validateAndSubmit,
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              backgroundColor: Theme.of(context).primaryColor,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+          // 确认按钮 - 使用统一风格
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _validateAndSubmit,
+              style: WorkbenchTheme.getPrimaryButtonStyle(context),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.search, size: 28),
+                  SizedBox(width: 12),
+                  Text('查询订单'),
+                ],
               ),
-              elevation: 2,
-            ),
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.search, size: 28),
-                SizedBox(width: 12),
-                Text(
-                  '查询订单',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
             ),
           ),
           
           const SizedBox(height: 24),
           
-          // 使用说明
+          // 使用说明 - 使用统一风格
           Container(
             padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.blue.shade50,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: Colors.blue.shade200,
-                width: 1,
-              ),
-            ),
+            decoration: WorkbenchTheme.getInfoCardDecoration(),
             child: const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -249,7 +198,7 @@ class _ManualInputWidgetState extends State<ManualInputWidget> {
                   children: [
                     Icon(
                       Icons.info_outline,
-                      color: Colors.blue,
+                      color: WorkbenchTheme.infoTextColor,
                       size: 20,
                     ),
                     SizedBox(width: 8),
@@ -258,7 +207,7 @@ class _ManualInputWidgetState extends State<ManualInputWidget> {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Colors.blue,
+                        color: WorkbenchTheme.infoTextColor,
                       ),
                     ),
                   ],

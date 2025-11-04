@@ -188,6 +188,92 @@ void main() {
         expect(result.isValid, isFalse);
         expect(result.errors, contains('有 1 个物料数量不匹配'));
       });
+
+      test('should detect materials with zero required quantity as data anomaly', () {
+        // Arrange - 物料需求数量为0，表示数据异常
+        final materialsWithZeroQuantity = [
+          const MaterialItem(
+            id: '1',
+            code: 'MAT001',
+            name: '测试物料1',
+            category: MaterialCategory.lineBreak,
+            requiredQuantity: 0,  // 异常：需求数量为0
+            availableQuantity: 5,
+            status: MaterialStatus.completed,
+            location: 'A-01-001',
+          ),
+        ];
+        final orderWithZeroQuantity = testOrder.copyWith(materials: materialsWithZeroQuantity);
+
+        // Act
+        final result = SubmissionValidator.validateOrderSubmission(orderWithZeroQuantity);
+
+        // Assert
+        expect(result.isValid, isFalse);
+        expect(result.errors, contains('有 1 个物料需求数量为0，数据异常，请联系管理员'));
+        expect(result.errors, contains('有 1 个物料存在数据异常'));
+      });
+
+      test('should block submission when multiple materials have zero quantity', () {
+        // Arrange - 多个物料需求数量为0
+        final materialsWithZeroQuantity = [
+          const MaterialItem(
+            id: '1',
+            code: 'MAT001',
+            name: '测试物料1',
+            category: MaterialCategory.lineBreak,
+            requiredQuantity: 0,
+            availableQuantity: 10,
+            status: MaterialStatus.completed,
+            location: 'A-01-001',
+          ),
+          const MaterialItem(
+            id: '2',
+            code: 'MAT002',
+            name: '测试物料2',
+            category: MaterialCategory.centralWarehouse,
+            requiredQuantity: 0,
+            availableQuantity: 5,
+            status: MaterialStatus.completed,
+            location: 'B-02-003',
+          ),
+          testMaterials[2],  // 正常物料
+        ];
+        final orderWithZeroQuantity = testOrder.copyWith(materials: materialsWithZeroQuantity);
+
+        // Act
+        final result = SubmissionValidator.validateOrderSubmission(orderWithZeroQuantity);
+
+        // Assert
+        expect(result.isValid, isFalse);
+        expect(result.errors, contains('有 2 个物料需求数量为0，数据异常，请联系管理员'));
+        expect(result.errors, contains('有 2 个物料存在数据异常'));
+      });
+
+      test('should not allow submission even if all materials marked completed but have zero quantity', () {
+        // Arrange - 所有物料都标记为完成，但需求数量为0（数据异常）
+        final materialsWithZeroQuantity = [
+          const MaterialItem(
+            id: '1',
+            code: 'MAT001',
+            name: '测试物料1',
+            category: MaterialCategory.lineBreak,
+            requiredQuantity: 0,
+            availableQuantity: 0,
+            status: MaterialStatus.completed,  // 错误地标记为完成
+            location: 'A-01-001',
+          ),
+        ];
+        final orderWithZeroQuantity = testOrder.copyWith(materials: materialsWithZeroQuantity);
+
+        // Act
+        final result = SubmissionValidator.validateOrderSubmission(orderWithZeroQuantity);
+
+        // Assert
+        expect(result.isValid, isFalse);
+        expect(result.errors.length, greaterThan(0));
+        expect(result.completionPercentage, equals(1.0));  // 虽然完成率100%，但不能提交
+      });
     });
 
     group('canEnableSubmitButton', () {
@@ -417,6 +503,205 @@ void main() {
         expect(result, contains('有 1 个物料缺失'));
         expect(result, contains('有 1 个物料数量不足'));
       });
+
+      test('should detect zero quantity materials as highest priority blocking issue', () {
+        // Arrange - 需求数量为0应该是最高优先级的阻塞问题
+        final problematicMaterials = [
+          const MaterialItem(
+            id: '1',
+            code: 'MAT001',
+            name: '测试物料1',
+            category: MaterialCategory.lineBreak,
+            requiredQuantity: 0,  // 数据异常
+            availableQuantity: 5,
+            status: MaterialStatus.completed,
+            location: 'A-01-001',
+          ),
+          testMaterials[1].copyWith(status: MaterialStatus.error),
+        ];
+        final orderWithProblems = testOrder.copyWith(materials: problematicMaterials);
+
+        // Act
+        final result = SubmissionValidator.getBlockingIssues(orderWithProblems);
+
+        // Assert
+        expect(result.length, greaterThan(0));
+        expect(result.first, contains('需求数量为0'));  // 零数量问题应该排在前面
+        expect(result, contains('有 1 个物料状态异常'));
+      });
+    });
+
+    group('getMaterialsWithZeroQuantity', () {
+      test('should return empty list when no materials have zero quantity', () {
+        // Act
+        final result = SubmissionValidator.getMaterialsWithZeroQuantity(testOrder);
+
+        // Assert
+        expect(result, isEmpty);
+      });
+
+      test('should return materials with zero required quantity', () {
+        // Arrange
+        final materialsWithZero = [
+          const MaterialItem(
+            id: '1',
+            code: 'MAT001',
+            name: '测试物料1',
+            category: MaterialCategory.lineBreak,
+            requiredQuantity: 0,
+            availableQuantity: 5,
+            status: MaterialStatus.completed,
+            location: 'A-01-001',
+          ),
+          testMaterials[1],  // 正常物料
+        ];
+        final orderWithZero = testOrder.copyWith(materials: materialsWithZero);
+
+        // Act
+        final result = SubmissionValidator.getMaterialsWithZeroQuantity(orderWithZero);
+
+        // Assert
+        expect(result.length, equals(1));
+        expect(result.first.id, equals('1'));
+        expect(result.first.requiredQuantity, equals(0));
+      });
+    });
+
+    group('allMaterialsHaveValidQuantity', () {
+      test('should return true when all materials have valid quantity', () {
+        // Act
+        final result = SubmissionValidator.allMaterialsHaveValidQuantity(testOrder);
+
+        // Assert
+        expect(result, isTrue);
+      });
+
+      test('should return false when any material has zero quantity', () {
+        // Arrange
+        final materialsWithZero = [
+          const MaterialItem(
+            id: '1',
+            code: 'MAT001',
+            name: '测试物料1',
+            category: MaterialCategory.lineBreak,
+            requiredQuantity: 0,
+            availableQuantity: 5,
+            status: MaterialStatus.completed,
+            location: 'A-01-001',
+          ),
+        ];
+        final orderWithZero = testOrder.copyWith(materials: materialsWithZero);
+
+        // Act
+        final result = SubmissionValidator.allMaterialsHaveValidQuantity(orderWithZero);
+
+        // Assert
+        expect(result, isFalse);
+      });
+    });
+  });
+
+  group('MaterialItem Data Anomaly Detection', () {
+    test('hasValidRequiredQuantity should return false for zero quantity', () {
+      // Arrange
+      const material = MaterialItem(
+        id: '1',
+        code: 'MAT001',
+        name: '测试物料',
+        category: MaterialCategory.lineBreak,
+        requiredQuantity: 0,
+        availableQuantity: 5,
+        status: MaterialStatus.pending,
+        location: 'A-01-001',
+      );
+
+      // Act & Assert
+      expect(material.hasValidRequiredQuantity, isFalse);
+    });
+
+    test('hasValidRequiredQuantity should return true for positive quantity', () {
+      // Arrange
+      const material = MaterialItem(
+        id: '1',
+        code: 'MAT001',
+        name: '测试物料',
+        category: MaterialCategory.lineBreak,
+        requiredQuantity: 10,
+        availableQuantity: 5,
+        status: MaterialStatus.pending,
+        location: 'A-01-001',
+      );
+
+      // Act & Assert
+      expect(material.hasValidRequiredQuantity, isTrue);
+    });
+
+    test('hasDataAnomaly should detect zero quantity', () {
+      // Arrange
+      const material = MaterialItem(
+        id: '1',
+        code: 'MAT001',
+        name: '测试物料',
+        category: MaterialCategory.lineBreak,
+        requiredQuantity: 0,
+        availableQuantity: 5,
+        status: MaterialStatus.pending,
+        location: 'A-01-001',
+      );
+
+      // Act & Assert
+      expect(material.hasDataAnomaly, isTrue);
+    });
+
+    test('hasDataAnomaly should detect empty code', () {
+      // Arrange
+      const material = MaterialItem(
+        id: '1',
+        code: '',
+        name: '测试物料',
+        category: MaterialCategory.lineBreak,
+        requiredQuantity: 10,
+        availableQuantity: 5,
+        status: MaterialStatus.pending,
+        location: 'A-01-001',
+      );
+
+      // Act & Assert
+      expect(material.hasDataAnomaly, isTrue);
+    });
+
+    test('hasDataAnomaly should detect empty name', () {
+      // Arrange
+      const material = MaterialItem(
+        id: '1',
+        code: 'MAT001',
+        name: '',
+        category: MaterialCategory.lineBreak,
+        requiredQuantity: 10,
+        availableQuantity: 5,
+        status: MaterialStatus.pending,
+        location: 'A-01-001',
+      );
+
+      // Act & Assert
+      expect(material.hasDataAnomaly, isTrue);
+    });
+
+    test('hasDataAnomaly should return false for valid material', () {
+      // Arrange
+      const material = MaterialItem(
+        id: '1',
+        code: 'MAT001',
+        name: '测试物料',
+        category: MaterialCategory.lineBreak,
+        requiredQuantity: 10,
+        availableQuantity: 5,
+        status: MaterialStatus.pending,
+        location: 'A-01-001',
+      );
+
+      // Act & Assert
+      expect(material.hasDataAnomaly, isFalse);
     });
   });
 

@@ -80,6 +80,19 @@ class MaterialItem extends Equatable {
     return shortage > 0 ? shortage : 0;
   }
 
+  /// 检查需求数量是否有效（不为0）
+  ///
+  /// 当API返回的需求数量为0时，表示数据异常
+  /// 这种情况下物料项应该被标记为异常状态，不允许提交
+  bool get hasValidRequiredQuantity => requiredQuantity > 0;
+
+  /// 检查物料数据是否异常
+  ///
+  /// 数据异常包括：
+  /// - 需求数量为0（数据错误）
+  /// - 物料编码或名称为空
+  bool get hasDataAnomaly => !hasValidRequiredQuantity || code.isEmpty || name.isEmpty;
+
   /// 复制并更新物料项
   MaterialItem copyWith({
     String? id,

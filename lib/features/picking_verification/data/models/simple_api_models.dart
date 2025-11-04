@@ -39,7 +39,12 @@ class SimpleMaterialItem {
   }
 
   /// 检查物料是否已完成
-  bool get isCompleted => completedQuantity >= quantity;
+  ///
+  /// 注意：需求数量为0时视为数据异常，不应标记为完成
+  bool get isCompleted {
+    if (quantity <= 0) return false;  // 数据异常，不能标记为完成
+    return completedQuantity >= quantity;
+  }
 
   /// 获取完成百分比
   double get completionPercentage {

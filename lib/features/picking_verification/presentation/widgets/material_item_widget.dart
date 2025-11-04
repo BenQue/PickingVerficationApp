@@ -87,13 +87,55 @@ class MaterialItemWidget extends StatelessWidget {
                       ),
                     ),
                   
+                  // 数据异常警告（如果存在）
+                  if (material.hasDataAnomaly)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade50,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: Colors.red.shade300,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.error_outline,
+                              size: 18,
+                              color: Colors.red.shade700,
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                material.hasValidRequiredQuantity
+                                    ? '数据异常：物料信息不完整'
+                                    : '数据异常：需求数量为0，请联系管理员',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.red.shade700,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
                   // 数量和位置信息
                   Row(
                     children: [
                       // 数量信息
                       _buildQuantityInfo(),
                       const SizedBox(width: 16),
-                      
+
                       // 位置信息
                       Expanded(
                         child: Row(
@@ -182,10 +224,18 @@ class MaterialItemWidget extends StatelessWidget {
 
 
   Widget _buildQuantityInfo() {
+    // 检查数据异常情况
+    final bool hasDataAnomaly = material.hasDataAnomaly;
     final bool isFulfilled = material.isFulfilled;
-    final Color quantityColor = isFulfilled ? Colors.green.shade700 : Colors.red.shade700;
-    final Color quantityBgColor = isFulfilled ? Colors.green.shade50 : Colors.red.shade50;
-    
+
+    // 根据数据状态确定颜色
+    final Color quantityColor = hasDataAnomaly
+        ? Colors.red.shade700  // 数据异常：红色
+        : (isFulfilled ? Colors.green.shade700 : Colors.orange.shade700);
+    final Color quantityBgColor = hasDataAnomaly
+        ? Colors.red.shade50
+        : (isFulfilled ? Colors.green.shade50 : Colors.orange.shade50);
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
@@ -200,16 +250,21 @@ class MaterialItemWidget extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            isFulfilled ? Icons.check_circle_outline : Icons.warning_amber_rounded,
+            hasDataAnomaly
+                ? Icons.error_outline  // 数据异常图标
+                : (isFulfilled ? Icons.check_circle_outline : Icons.warning_amber_rounded),
             size: 18,
             color: quantityColor,
           ),
           const SizedBox(width: 4),
           Text(
-            '${material.availableQuantity}/${material.requiredQuantity}',
+            !material.hasValidRequiredQuantity
+                ? '0/${material.requiredQuantity}'  // 显示异常的需求数量
+                : '${material.availableQuantity}/${material.requiredQuantity}',
             style: MaterialStatusTheme.bodyLargeStyle.copyWith(
               fontWeight: FontWeight.w700,
               color: quantityColor,
+              decoration: hasDataAnomaly ? TextDecoration.lineThrough : null,  // 划线表示异常
             ),
           ),
           const SizedBox(width: 4),

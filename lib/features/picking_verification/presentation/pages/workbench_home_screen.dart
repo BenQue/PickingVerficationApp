@@ -7,60 +7,100 @@ import '../../data/repositories/simple_picking_repository_impl.dart';
 import '../../data/datasources/simple_picking_datasource.dart';
 import '../../../../core/api/dio_client.dart';
 import '../../../../core/theme/workbench_theme.dart';
+import '../../../../core/config/app_config.dart';
+import '../../../app_update/presentation/bloc/update_bloc_simple.dart';
+import '../../../app_update/presentation/bloc/update_event.dart';
+import '../../../app_update/presentation/bloc/update_state.dart';
+import '../../../app_update/presentation/widgets/update_dialog.dart';
 
 /// 工作台首页 - 模拟登录后的主界面
-class WorkbenchHomeScreen extends StatelessWidget {
+class WorkbenchHomeScreen extends StatefulWidget {
   const WorkbenchHomeScreen({super.key});
 
   @override
+  State<WorkbenchHomeScreen> createState() => _WorkbenchHomeScreenState();
+}
+
+class _WorkbenchHomeScreenState extends State<WorkbenchHomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // 启动时检查更新
+    if (AppConfig.checkUpdateOnStartup && AppConfig.enableAutoUpdate) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        context.read<UpdateBlocSimple>().add(const CheckUpdateRequested(silent: true));
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'WMS工作台',
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Colors.white,
-        actions: [
-          // 用户信息 - 可点击查看版本
-          Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: TextButton(
-              onPressed: () => _showUserInfo(context),
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.person, size: 20, color: Colors.white),
-                  const SizedBox(width: 4),
-                  const Text(
-                    '操作员001',
-                    style: TextStyle(fontSize: 16, color: Colors.white),
-                  ),
-                ],
+    return BlocListener<UpdateBlocSimple, UpdateState>(
+      listener: (context, state) {
+        if (state is UpdateAvailable) {
+          // 有新版本可用，显示更新对话框
+          showUpdateDialog(context, state.updateInfo);
+        } else if (state is UpdateNotAvailable && state.showMessage) {
+          // 已是最新版本（仅在用户手动检查时显示）
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('当前已是最新版本'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        } else if (state is UpdateFailure) {
+          // 检查更新失败（静默失败，不打扰用户）
+          debugPrint('检查更新失败: ${state.message}');
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text(
+            'WMS工作台',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          centerTitle: true,
+          backgroundColor: Theme.of(context).colorScheme.primary,
+          foregroundColor: Colors.white,
+          actions: [
+            // 用户信息 - 可点击查看版本
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: TextButton(
+                onPressed: () => _showUserInfo(context),
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.person, size: 20, color: Colors.white),
+                    const SizedBox(width: 4),
+                    const Text(
+                      '操作员001',
+                      style: TextStyle(fontSize: 16, color: Colors.white),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
-      ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Colors.blue.shade50,
-              Colors.white,
-            ],
-          ),
+          ],
         ),
-        child: SafeArea(
-          child: Column(
-            children: [
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.blue.shade50,
+                Colors.white,
+              ],
+            ),
+          ),
+          child: SafeArea(
+            child: Column(
+              children: [
               // 状态栏
               Container(
                 padding: const EdgeInsets.all(16),
@@ -163,7 +203,7 @@ class WorkbenchHomeScreen extends StatelessWidget {
           ),
         ),
       ),
-    );
+    ));
   }
 
   /// 构建启用的功能卡片 - 使用统一主题
@@ -492,7 +532,7 @@ class WorkbenchHomeScreen extends StatelessWidget {
                           const Padding(
                             padding: EdgeInsets.only(left: 24),
                             child: Text(
-                              'V1.3.2',
+                              'V1.5.1',
                               style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.bold,
@@ -501,6 +541,24 @@ class WorkbenchHomeScreen extends StatelessWidget {
                             ),
                           ),
                         ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    // 检查更新按钮
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          context.read<UpdateBlocSimple>().add(const CheckUpdateRequested(silent: false));
+                        },
+                        icon: const Icon(Icons.system_update, size: 20),
+                        label: const Text('检查更新'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
                       ),
                     ),
                   ],

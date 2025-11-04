@@ -385,6 +385,12 @@ class PickingVerificationBloc extends Bloc<PickingVerificationEvent, PickingVeri
         // Find and update the material in the order
         final updatedMaterials = currentState.order.materials.map((material) {
           if (material.id == event.materialId) {
+            // 如果物料需求数量为0，强制保持error状态，不允许更改
+            if (material.requiredQuantity <= 0) {
+              print('🔴 BLoC: 阻止零数量物料状态更新 - ID: ${material.id}, Code: ${material.code}, 保持ERROR状态');
+              return material.copyWith(status: MaterialStatus.error);
+            }
+            print('✅ BLoC: 更新物料状态 - ID: ${material.id}, Code: ${material.code}, NewStatus: ${event.newStatus.label}');
             return material.copyWith(status: event.newStatus);
           }
           return material;
@@ -482,6 +488,10 @@ class PickingVerificationBloc extends Bloc<PickingVerificationEvent, PickingVeri
         // Reset specific material
         updatedMaterials = currentState.order.materials.map((material) {
           if (material.id == event.materialId) {
+            // 如果物料需求数量为0，保持error状态，不允许重置
+            if (material.requiredQuantity <= 0) {
+              return material.copyWith(status: MaterialStatus.error);
+            }
             return material.copyWith(status: MaterialStatus.pending);
           }
           return material;
@@ -489,6 +499,10 @@ class PickingVerificationBloc extends Bloc<PickingVerificationEvent, PickingVeri
       } else {
         // Reset all materials
         updatedMaterials = currentState.order.materials.map((material) {
+          // 如果物料需求数量为0，保持error状态，不允许重置
+          if (material.requiredQuantity <= 0) {
+            return material.copyWith(status: MaterialStatus.error);
+          }
           return material.copyWith(status: MaterialStatus.pending);
         }).toList();
       }

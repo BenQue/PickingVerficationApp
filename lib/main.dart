@@ -5,12 +5,15 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'core/config/app_router.dart';
+import 'core/config/app_config.dart';
 import 'core/theme/app_theme.dart';
 import 'core/api/dio_client.dart';
 import 'features/auth/data/datasources/auth_remote_datasource.dart';
 import 'features/auth/data/repositories/auth_repository_impl.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/auth/domain/services/permission_service.dart';
+import 'features/app_update/data/repositories/update_repository_simple.dart';
+import 'features/app_update/presentation/bloc/update_bloc_simple.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -59,6 +62,12 @@ class PickingVerificationApp extends StatelessWidget {
 
     final permissionService = PermissionService();
 
+    // Setup update repository
+    final updateRepository = UpdateRepositorySimple(
+      dio: dioClient.dio,
+      updateServerUrl: AppConfig.updateServerUrl,
+    );
+
     return MultiProvider(
       providers: [
         Provider<PermissionService>(
@@ -68,6 +77,11 @@ class PickingVerificationApp extends StatelessWidget {
           create: (context) => AuthBloc(
             authRepository: authRepository,
             permissionService: permissionService,
+          ),
+        ),
+        BlocProvider<UpdateBlocSimple>(
+          create: (context) => UpdateBlocSimple(
+            updateRepository: updateRepository,
           ),
         ),
       ],

@@ -19,8 +19,30 @@ class SimpleMaterial {
     required this.category,
   });
 
+  /// 检查需求数量是否有效（不为0）
+  ///
+  /// 当API返回的需求数量为0时，表示数据异常
+  bool get hasValidQuantity => quantity > 0;
+
+  /// 检查数据是否异常
+  ///
+  /// 数据异常包括：
+  /// - 需求数量为0（数据错误）
+  /// - 物料编码或描述为空
+  bool get hasDataAnomaly => !hasValidQuantity || materialCode.isEmpty || materialDesc.isEmpty;
+
   /// 是否已完成
-  bool get isCompleted => completedQuantity >= quantity;
+  ///
+  /// 注意：需求数量为0时视为数据异常，不应标记为完成
+  bool get isCompleted {
+    if (!hasValidQuantity) return false;  // 数据异常，不能标记为完成
+    return completedQuantity >= quantity;
+  }
+
+  /// 是否显示为异常状态（红色）
+  ///
+  /// 需求数量为0时应显示为异常状态
+  bool get isError => hasDataAnomaly;
 
   /// 完成进度（0.0 - 1.0）
   double get progress {

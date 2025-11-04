@@ -1,0 +1,10 @@
+{
+  "versionCode": 41,
+  "versionName": "1.5.1",
+  "downloadUrl": "http://10.163.130.173:8000/warehouse-app-v1.5.1-build41.apk",
+  "updateLog": "• 测试版本：验证自动更新功能\n• 优化更新流程\n• 改进下载稳定性",
+  "forceUpdate": false,
+  "minSupportedVersion": 30,
+  "fileSize": 81788928,
+  "releaseDate": "2025-11-04"
+}

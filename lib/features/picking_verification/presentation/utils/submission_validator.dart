@@ -77,12 +77,31 @@ class SubmissionValidator {
     }
 
     // 检查数据完整性
-    final materialsWithoutRequiredData = order.materials.where((m) => 
-      m.code.isEmpty || m.name.isEmpty || m.requiredQuantity <= 0
+    final materialsWithoutRequiredData = order.materials.where((m) =>
+      m.code.isEmpty || m.name.isEmpty
     ).toList();
 
     if (materialsWithoutRequiredData.isNotEmpty) {
       errors.add('有 ${materialsWithoutRequiredData.length} 个物料数据不完整');
+    }
+
+    // 检查需求数量异常（需求数量为0表示数据异常）
+    final materialsWithZeroQuantity = order.materials.where((m) =>
+      !m.hasValidRequiredQuantity
+    ).toList();
+
+    if (materialsWithZeroQuantity.isNotEmpty) {
+      errors.add('有 ${materialsWithZeroQuantity.length} 个物料需求数量为0，数据异常，请联系管理员');
+      // 这是一个严重错误，应该阻止提交
+    }
+
+    // 检查所有物料是否有数据异常
+    final materialsWithDataAnomaly = order.materials.where((m) =>
+      m.hasDataAnomaly
+    ).toList();
+
+    if (materialsWithDataAnomaly.isNotEmpty) {
+      errors.add('有 ${materialsWithDataAnomaly.length} 个物料存在数据异常');
     }
 
     // 检查数量匹配
@@ -153,26 +172,50 @@ class SubmissionValidator {
   /// 检查是否有阻塞性问题
   static List<String> getBlockingIssues(PickingOrder order) {
     final List<String> blockingIssues = [];
-    
+
+    // 检查需求数量为0的物料（数据异常，优先级最高）
+    final zeroQuantityMaterials = order.materials.where((m) => !m.hasValidRequiredQuantity).toList();
+    if (zeroQuantityMaterials.isNotEmpty) {
+      blockingIssues.add('有 ${zeroQuantityMaterials.length} 个物料需求数量为0（数据异常）');
+    }
+
+    // 检查数据异常的物料
+    final anomalyMaterials = order.materials.where((m) => m.hasDataAnomaly).toList();
+    if (anomalyMaterials.isNotEmpty) {
+      blockingIssues.add('有 ${anomalyMaterials.length} 个物料存在数据异常');
+    }
+
     // 检查异常状态的物料
     final errorMaterials = order.materials.where((m) => m.status == MaterialStatus.error).toList();
     if (errorMaterials.isNotEmpty) {
       blockingIssues.add('有 ${errorMaterials.length} 个物料状态异常');
     }
-    
+
     // 检查缺失的物料
     final missingMaterials = order.materials.where((m) => m.status == MaterialStatus.missing).toList();
     if (missingMaterials.isNotEmpty) {
       blockingIssues.add('有 ${missingMaterials.length} 个物料缺失');
     }
-    
+
     // 检查数量不足的物料
     final shortfallMaterials = order.materials.where((m) => m.shortageQuantity > 0).toList();
     if (shortfallMaterials.isNotEmpty) {
       blockingIssues.add('有 ${shortfallMaterials.length} 个物料数量不足');
     }
-    
+
     return blockingIssues;
+  }
+
+  /// 检查是否有需求数量异常的物料
+  ///
+  /// 返回需求数量为0的物料列表
+  static List<MaterialItem> getMaterialsWithZeroQuantity(PickingOrder order) {
+    return order.materials.where((m) => !m.hasValidRequiredQuantity).toList();
+  }
+
+  /// 检查是否所有物料都有有效的需求数量
+  static bool allMaterialsHaveValidQuantity(PickingOrder order) {
+    return order.materials.every((m) => m.hasValidRequiredQuantity);
   }
 }
 

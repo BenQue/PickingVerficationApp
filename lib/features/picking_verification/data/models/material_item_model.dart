@@ -64,6 +64,16 @@ class MaterialItemModel {
 
   /// 转换为实体
   MaterialItem toEntity() {
+    // 检查数据异常：如果需求数量为0，强制设置为error状态
+    final MaterialStatus finalStatus;
+    if (requiredQuantity <= 0) {
+      print('🔴 MaterialItemModel.toEntity: 检测到零数量物料 - ID: $id, Code: $code, RequiredQty: $requiredQuantity, 设置为ERROR状态');
+      finalStatus = MaterialStatus.error;
+    } else {
+      finalStatus = _mapStatus(status);
+      print('✅ MaterialItemModel.toEntity: 正常物料 - ID: $id, Code: $code, RequiredQty: $requiredQuantity, Status: ${_statusToString(finalStatus)}');
+    }
+
     return MaterialItem(
       id: id,
       code: code,
@@ -72,7 +82,7 @@ class MaterialItemModel {
       category: _mapCategory(category),
       requiredQuantity: requiredQuantity,
       availableQuantity: availableQuantity,
-      status: _mapStatus(status),
+      status: finalStatus,
       location: location,
       unit: unit,
       remarks: remarks,

@@ -85,7 +85,31 @@ class _SubmissionControlsWidgetState extends State<SubmissionControlsWidget> {
   Widget _buildProgressIndicator(SubmissionValidationResult result) {
     final progressValue = result.completionPercentage;
     final isCompleted = result.isValid;
-    
+
+    // 检查是否有数据异常
+    final hasDataAnomaly = result.errors.any((error) =>
+      error.contains('数据异常') || error.contains('需求数量为0')
+    );
+
+    // 确定状态颜色
+    final Color statusColor;
+    final IconData statusIcon;
+    final String statusText;
+
+    if (hasDataAnomaly) {
+      statusColor = Colors.red;
+      statusIcon = Icons.error_outline;
+      statusText = '数据异常，无法提交';
+    } else if (isCompleted) {
+      statusColor = Colors.green;
+      statusIcon = Icons.check_circle;
+      statusText = '所有物料已完成校验';
+    } else {
+      statusColor = Colors.orange;
+      statusIcon = Icons.radio_button_unchecked;
+      statusText = '物料校验进度';
+    }
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -95,24 +119,25 @@ class _SubmissionControlsWidgetState extends State<SubmissionControlsWidget> {
             Row(
               children: [
                 Icon(
-                  isCompleted ? Icons.check_circle : Icons.radio_button_unchecked,
-                  color: isCompleted ? Colors.green : Colors.orange,
+                  statusIcon,
+                  color: statusColor,
                   size: 24.0,
                 ),
                 const SizedBox(width: 12.0),
                 Expanded(
                   child: Text(
-                    isCompleted ? '所有物料已完成校验' : '物料校验进度',
+                    statusText,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontSize: 18.0, // PDA适配大字体
                       fontWeight: FontWeight.w600,
+                      color: hasDataAnomaly ? Colors.red.shade800 : null,
                     ),
                   ),
                 ),
                 Text(
                   '${(progressValue * 100).toInt()}%',
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    color: isCompleted ? Colors.green : Colors.orange,
+                    color: statusColor,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -122,9 +147,7 @@ class _SubmissionControlsWidgetState extends State<SubmissionControlsWidget> {
             LinearProgressIndicator(
               value: progressValue,
               backgroundColor: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
-              valueColor: AlwaysStoppedAnimation<Color>(
-                isCompleted ? Colors.green : Colors.orange,
-              ),
+              valueColor: AlwaysStoppedAnimation<Color>(statusColor),
               minHeight: 8.0, // PDA适配加粗进度条
             ),
             const SizedBox(height: 8.0),
@@ -315,7 +338,16 @@ class _SubmissionControlsWidgetState extends State<SubmissionControlsWidget> {
     } else if (result.isValid) {
       return '提交校验';
     } else {
-      return '完成所有物料后提交 (${(result.completionPercentage * 100).toInt()}%)';
+      // 检查是否有数据异常
+      final hasDataAnomaly = result.errors.any((error) =>
+        error.contains('数据异常') || error.contains('需求数量为0')
+      );
+
+      if (hasDataAnomaly) {
+        return '存在数据异常，无法提交';
+      } else {
+        return '完成所有物料后提交 (${(result.completionPercentage * 100).toInt()}%)';
+      }
     }
   }
 

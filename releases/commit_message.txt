@@ -1,0 +1,40 @@
+release: v1.5.3 - 修复HTTP 400错误信息显示
+
+主要改进:
+- 修复合箱校验中HTTP 400错误信息显示不清晰的问题
+- 优化DioClient配置，正确处理4xx/5xx错误响应
+- 增强错误消息解析和调试日志
+- 更新版本号至1.5.3 (build 43)
+
+影响范围:
+- lib/core/api/dio_client.dart (核心修复)
+- lib/features/picking_verification/data/datasources/simple_picking_datasource.dart (增强错误处理)
+- pubspec.yaml (版本号更新)
+- lib/features/picking_verification/presentation/pages/workbench_home_screen.dart (UI版本显示)
+- releases/version.json (自动更新配置)
+
+测试:
+- ✅ 新增单元测试: test/core/api/dio_client_http_400_test.dart
+- ✅ 所有测试通过 (2/2)
+- ✅ 代码分析无警告
+- ✅ APK 构建成功 (78.4 MB)
+
+文档:
+- releases/RELEASE_NOTES_v1.5.3.md (详细发布说明)
+- releases/INSTALL_SUMMARY_v1.5.3.txt (安装摘要)
+- releases/DEPLOYMENT_GUIDE_v1.5.3.md (部署指南)
+- releases/RELEASE_SUMMARY_v1.5.3.md (发布摘要)
+- docs/BUG_FIX_HTTP_400_ERROR.md (技术分析)
+- docs/QUICK_FIX_SUMMARY.md (快速总结)
+
+构建产物:
+- releases/warehouse-app-v1.5.3-build43.apk
+- MD5: 5eb2846bed22a99d3862fd6da11e0721
+
+用户体验改善:
+修复前: "获取工单详情失败：HTTP 400"
+修复后: "扫码出错：未查询到订单信息" (显示服务器详细错误)
+
+🤖 Generated with Claude Code
+
+Co-Authored-By: Claude <noreply@anthropic.com>

@@ -14,13 +14,18 @@ class SimplePickingDataSource {
   /// 获取工单详情 - 使用真实API
   Future<WorkOrderData> getWorkOrderDetails(String orderNo) async {
     try {
-      debugPrint('正在获取工单详情: $orderNo');
+      debugPrint('=== 开始获取工单详情 ===');
+      debugPrint('订单号: $orderNo');
+      debugPrint('请求URL: $baseUrl/api/WorkOrderPickVerf?orderno=$orderNo');
 
       // 使用真实API调用
       final response = await dio.get(
         '$baseUrl/api/WorkOrderPickVerf',
         queryParameters: {'orderno': orderNo},
       );
+
+      debugPrint('响应状态码: ${response.statusCode}');
+      debugPrint('响应数据: ${response.data}');
 
       if (response.statusCode == 200) {
         final apiResponse = WorkOrderPickVerfResponse.fromJson(response.data);
@@ -37,29 +42,40 @@ class SimplePickingDataSource {
         throw Exception('获取工单详情失败: HTTP ${response.statusCode}');
       }
     } on DioException catch (e) {
-      debugPrint('网络请求异常 - 状态码: ${e.response?.statusCode}');
+      debugPrint('=== 网络请求异常 ===');
+      debugPrint('异常类型: ${e.type}');
+      debugPrint('状态码: ${e.response?.statusCode}');
+      debugPrint('响应数据: ${e.response?.data}');
 
       // 处理Dio异常 (包括400, 404, 500等HTTP错误)
       if (e.response != null) {
         // 有响应数据,尝试解析
         if (e.response!.data != null) {
           try {
-            final errorResponse = WorkOrderPickVerfResponse.fromJson(e.response!.data as Map<String, dynamic>);
-            debugPrint('服务器返回错误: ${errorResponse.message}');
+            // 尝试解析服务器返回的错误响应
+            final errorResponse = WorkOrderPickVerfResponse.fromJson(
+              e.response!.data is Map<String, dynamic>
+                ? e.response!.data as Map<String, dynamic>
+                : {'isSuccess': false, 'message': e.response!.data.toString(), 'data': null}
+            );
 
-            // 直接抛出服务器返回的message
+            debugPrint('服务器返回错误消息: ${errorResponse.message}');
+
+            // 直接抛出服务器返回的message（这是用户应该看到的详细错误）
             throw Exception(errorResponse.message);
           } catch (parseError) {
             // 检查parseError是否已经是我们抛出的Exception
             if (parseError is Exception && parseError.toString().startsWith('Exception: ')) {
               // 这是我们上面throw的Exception,直接重新抛出
+              debugPrint('重新抛出服务器错误消息');
               rethrow;
             }
 
             // 真正的解析失败,使用HTTP状态码提示
-            debugPrint('解析错误响应失败,使用默认提示');
+            debugPrint('解析错误响应失败: $parseError');
+            debugPrint('使用HTTP状态码提供默认错误提示');
             if (e.response!.statusCode == 400) {
-              throw Exception('扫码订单出现未知错误');
+              throw Exception('扫码订单出现未知错误（无法解析服务器响应）');
             } else if (e.response!.statusCode == 404) {
               throw Exception('服务器接口不存在,请联系技术支持');
             } else if (e.response!.statusCode == 500) {
@@ -70,8 +86,9 @@ class SimplePickingDataSource {
           }
         } else {
           // 有响应但没有数据
+          debugPrint('服务器返回空数据');
           if (e.response!.statusCode == 400) {
-            throw Exception('扫码订单出现未知错误');
+            throw Exception('扫码订单出现未知错误（服务器未返回详细信息）');
           } else {
             throw Exception('服务器返回错误: HTTP ${e.response!.statusCode}');
           }

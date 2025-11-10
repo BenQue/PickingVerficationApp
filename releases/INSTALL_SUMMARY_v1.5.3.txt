@@ -1,0 +1,101 @@
+========================================
+仓库拣货验证 App v1.5.3 安装摘要
+========================================
+
+版本信息
+--------
+版本号: 1.5.3
+构建号: 43
+发布日期: 2025-11-10
+APK 大小: 78.4 MB (82,191,708 字节)
+
+文件信息
+--------
+文件名: warehouse-app-v1.5.3-build43.apk
+位置: releases/warehouse-app-v1.5.3-build43.apk
+MD5: 5eb2846bed22a99d3862fd6da11e0721
+
+下载地址
+--------
+HTTP URL: http://10.163.130.173:8000/warehouse-app-v1.5.3-build43.apk
+版本检查: http://10.163.130.173:8000/version.json
+
+更新内容
+--------
+• 修复HTTP 400错误信息显示问题
+• 改善错误消息提示，显示服务器详细错误信息
+• 增强网络请求调试日志
+
+自动更新配置
+------------
+✅ version.json 已更新
+✅ versionCode: 43
+✅ versionName: 1.5.3
+✅ downloadUrl: http://10.163.130.173:8000/warehouse-app-v1.5.3-build43.apk
+✅ forceUpdate: false (可选更新)
+✅ minSupportedVersion: 30
+
+安装方式
+--------
+
+方式一：应用内自动更新（推荐）
+1. 打开应用
+2. 应用会自动检测新版本
+3. 点击"立即更新"
+4. 等待下载和安装
+5. 重启应用
+
+方式二：ADB 手动安装
+1. 连接设备: adb devices
+2. 安装APK: adb install -r releases/warehouse-app-v1.5.3-build43.apk
+3. 验证版本: adb shell dumpsys package com.example.picking_verification_app | grep versionName
+
+方式三：直接安装
+1. 将APK复制到设备
+2. 打开文件管理器
+3. 点击APK文件
+4. 允许安装未知来源应用
+5. 按照提示完成安装
+
+版本验证
+--------
+安装后在工作台屏幕右上角点击员工信息按钮，确认版本显示为 V1.5.3
+
+部署到更新服务器
+----------------
+1. 复制APK到服务器:
+   scp releases/warehouse-app-v1.5.3-build43.apk user@10.163.130.173:/var/www/html/
+
+2. 复制version.json到服务器:
+   scp releases/version.json user@10.163.130.173:/var/www/html/
+
+3. 验证文件可访问:
+   curl http://10.163.130.173:8000/version.json
+   curl -I http://10.163.130.173:8000/warehouse-app-v1.5.3-build43.apk
+
+4. 测试自动更新:
+   - 在旧版本应用中测试更新检测
+   - 验证下载和安装流程
+
+兼容性
+------
+✅ Android 最低版本: API 30 (Android 11)
+✅ 从 v1.0.0+ 所有版本可直接升级
+✅ 无需数据迁移
+✅ 与服务器 API 完全兼容
+
+已知问题
+--------
+无新增已知问题
+
+技术支持
+--------
+如有问题，请参考:
+- 发布说明: releases/RELEASE_NOTES_v1.5.3.md
+- 技术文档: docs/BUG_FIX_HTTP_400_ERROR.md
+- 快速总结: docs/QUICK_FIX_SUMMARY.md
+
+========================================
+生成日期: 2025-11-10
+构建环境: Flutter 3.x
+========================================

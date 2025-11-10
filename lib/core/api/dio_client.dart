@@ -43,9 +43,10 @@ class DioClient {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
-      // Accept 400 as valid response for business logic errors
+      // Only accept 2xx and 3xx as valid responses
+      // 4xx and 5xx will trigger DioException for proper error handling
       validateStatus: (status) {
-        return status != null && status >= 200 && status < 500;
+        return status != null && status >= 200 && status < 400;
       },
     ));
 
@@ -136,9 +137,10 @@ class DioClient {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
           },
-          // Accept 400 as valid response for business logic errors
+          // Only accept 2xx and 3xx as valid responses
+          // 4xx and 5xx will trigger DioException for proper error handling
           validateStatus: (status) {
-            return status != null && status >= 200 && status < 500;
+            return status != null && status >= 200 && status < 400;
           },
         ));
 

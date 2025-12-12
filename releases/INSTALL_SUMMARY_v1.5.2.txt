@@ -1,0 +1,47 @@
+仓库管理应用 v1.5.2 (Build 42) - 安装摘要
+================================================================
+
+发布日期: 2025-11-04
+APK文件: warehouse-app-v1.5.2-build42.apk
+文件大小: 78 MB
+
+本版本重点修复
+--------------
+✅ 防止重复提交问题 - 四层防护机制
+✅ 提升提交可靠性
+✅ 改进用户体验
+
+安装步骤
+--------
+1. 连接设备
+   adb devices
+
+2. 安装APK
+   adb install -r releases/warehouse-app-v1.5.2-build42.apk
+
+3. 验证版本
+   adb shell dumpsys package com.example.picking_verification_app | grep versionName
+   # 预期输出: versionName=1.5.2
+
+4. 启动应用并验证
+   - 点击右上角员工信息按钮
+   - 确认显示 "V1.5.2"
+
+技术改进
+--------
+• 添加 bloc_concurrency 依赖
+• 实施 droppable transformer
+• 添加 BLoC 状态检查
+• 完善测试覆盖
+
+已知限制
+--------
+⚠️ 提交超时后无重试按钮（计划在下个版本修复）
+   详见: docs/FUTURE_IMPROVEMENTS.md
+
+详细信息
+--------
+完整发布说明: releases/RELEASE_NOTES_v1.5.2.md
+版本配置: releases/version.json
+
+================================================================

@@ -1,10 +1,10 @@
 {
-  "versionCode": 43,
-  "versionName": "1.5.3",
-  "downloadUrl": "http://10.163.130.173:8000/warehouse-app-v1.5.3-build43.apk",
-  "updateLog": "• 修复HTTP 400错误信息显示问题\n• 改善错误消息提示，显示服务器详细错误信息\n• 增强网络请求调试日志",
+  "versionCode": 70,
+  "versionName": "1.7.0",
+  "downloadUrl": "http://10.163.130.173:8000/warehouse-app-v1.7.0-build70.apk",
+  "updateLog": "• 新增按物料号码查询库存功能\n• 显示物料所有批次库存分布\n• 优化物料查询界面布局\n• 改进扫码输入兼容性",
   "forceUpdate": false,
   "minSupportedVersion": 30,
-  "fileSize": 82191708,
-  "releaseDate": "2025-11-10"
+  "fileSize": 82437556,
+  "releaseDate": "2025-12-12"
 }

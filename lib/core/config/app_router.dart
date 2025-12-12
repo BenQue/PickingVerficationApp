@@ -36,6 +36,7 @@ import '../../features/line_stock/presentation/pages/stock_query_screen.dart';
 import '../../features/line_stock/presentation/pages/cable_shelving_screen.dart';
 import '../../features/line_stock/presentation/pages/cable_return_screen.dart';
 import '../../features/line_stock/presentation/pages/cable_removal_screen.dart';
+import '../../features/line_stock/presentation/pages/cable_receiving_screen.dart';
 import '../../features/line_stock/presentation/bloc/line_stock_bloc.dart';
 import '../../features/line_stock/data/repositories/line_stock_repository_impl.dart';
 import '../../features/line_stock/data/datasources/line_stock_remote_datasource.dart';
@@ -56,6 +57,7 @@ class AppRouter {
   static const String lineStockShelvingRoute = '/line-stock/shelving';
   static const String lineStockReturnRoute = '/line-stock/return';
   static const String lineStockRemovalRoute = '/line-stock/removal';
+  static const String lineStockReceivingRoute = '/line-stock/receiving';
 
   static const _secureStorage = FlutterSecureStorage();
 
@@ -331,6 +333,21 @@ class AppRouter {
             ),
           ),
           child: const CableRemovalScreen(),
+        ),
+      ),
+
+      GoRoute(
+        path: lineStockReceivingRoute,
+        name: 'line-stock-receiving',
+        builder: (context, state) => BlocProvider(
+          create: (context) => LineStockBloc(
+            repository: LineStockRepositoryImpl(
+              remoteDataSource: LineStockRemoteDataSourceImpl(
+                dio: DioClient().dio,
+              ),
+            ),
+          ),
+          child: const CableReceivingScreen(),
         ),
       ),
     ],

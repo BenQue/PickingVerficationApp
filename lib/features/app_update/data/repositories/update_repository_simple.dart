@@ -74,20 +74,39 @@ class UpdateRepositorySimple implements UpdateRepository {
   @override
   Future<Either<Failure, bool>> downloadAndInstall(String downloadUrl) async {
     try {
-      // 1. 获取下载目录
-      final dir = await getApplicationDocumentsDirectory();
+      // 1. 获取外部缓存目录（Android 推荐用于临时文件）
+      Directory? dir;
+      try {
+        // 优先使用外部缓存目录
+        dir = await getExternalStorageDirectory();
+      } catch (e) {
+        // 如果外部存储不可用，使用应用缓存目录
+        dir = await getTemporaryDirectory();
+      }
+
+      if (dir == null) {
+        return const Left(ServerFailure('无法获取存储目录'));
+      }
+
       final savePath = '${dir.path}/warehouse_app_update.apk';
+      print('APK 保存路径: $savePath');
 
       // 2. 删除旧的APK文件（如果存在）
       final file = File(savePath);
       if (await file.exists()) {
-        await file.delete();
+        try {
+          await file.delete();
+          print('已删除旧APK文件');
+        } catch (e) {
+          print('删除旧APK失败: $e');
+        }
       }
 
       // 3. 创建取消令牌
       _cancelToken = CancelToken();
 
       // 4. 使用dio下载APK
+      print('开始下载: $downloadUrl');
       await dio.download(
         downloadUrl,
         savePath,
@@ -95,25 +114,47 @@ class UpdateRepositorySimple implements UpdateRepository {
         onReceiveProgress: (received, total) {
           if (total != -1) {
             _onProgress?.call(received, total);
+            print('下载进度: ${(received / total * 100).toStringAsFixed(1)}%');
           }
         },
       );
 
-      // 5. 下载完成，调用安装
+      // 5. 验证文件是否下载成功
+      if (!await file.exists()) {
+        return const Left(ServerFailure('APK文件下载失败：文件不存在'));
+      }
+
+      final fileSize = await file.length();
+      print('APK文件已下载，大小: ${fileSize} bytes');
+
+      if (fileSize == 0) {
+        return const Left(ServerFailure('APK文件下载失败：文件大小为0'));
+      }
+
+      // 6. 下载完成，调用安装
+      print('调用安装: $savePath');
       final success = await ApkInstaller.installApk(savePath);
 
       if (success) {
+        print('安装界面已打开');
         return const Right(true);
       } else {
         return const Left(ServerFailure('打开APK文件失败'));
       }
     } on DioException catch (e) {
+      print('DioException: ${e.type} - ${e.message}');
       if (e.type == DioExceptionType.cancel) {
         return const Left(ServerFailure('下载已取消'));
+      } else if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.receiveTimeout) {
+        return const Left(ServerFailure('下载超时，请检查网络连接'));
+      } else if (e.type == DioExceptionType.badResponse) {
+        return Left(ServerFailure('服务器响应错误: ${e.response?.statusCode}'));
       } else {
         return Left(ServerFailure('下载APK失败: ${e.message}'));
       }
     } catch (e) {
+      print('未知错误: $e');
       return Left(ServerFailure('下载或安装失败: $e'));
     }
   }

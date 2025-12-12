@@ -49,7 +49,7 @@ class MainActivity : FlutterActivity() {
             intent.flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
             val apkUri = FileProvider.getUriForFile(
                 this,
-                "${applicationContext.packageName}.fileprovider",
+                "${applicationContext.packageName}.fileProvider",
                 apkFile
             )
             intent.setDataAndType(apkUri, "application/vnd.android.package-archive")

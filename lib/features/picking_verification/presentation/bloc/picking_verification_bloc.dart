@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:bloc_concurrency/bloc_concurrency.dart';
 import '../../domain/repositories/picking_repository.dart';
 import '../../domain/entities/material_item.dart';
 import '../../domain/entities/picking_order.dart';
@@ -37,7 +38,10 @@ class PickingVerificationBloc extends Bloc<PickingVerificationEvent, PickingVeri
     on<UndoStatusChange>(_onUndoStatusChange);
     on<RedoStatusChange>(_onRedoStatusChange);
     // Submission workflow event handlers
-    on<SubmitVerificationEvent>(_onSubmitVerification);
+    on<SubmitVerificationEvent>(
+      _onSubmitVerification,
+      transformer: droppable(), // 防止重复提交：提交进行中时丢弃新事件
+    );
     on<RetrySubmissionEvent>(_onRetrySubmission);
     on<ClearSubmissionDataEvent>(_onClearSubmissionData);
     on<CancelSubmissionEvent>(_onCancelSubmission);
@@ -574,6 +578,14 @@ class PickingVerificationBloc extends Bloc<PickingVerificationEvent, PickingVeri
     SubmitVerificationEvent event,
     Emitter<PickingVerificationState> emit,
   ) async {
+    // 防止重复提交：如果已经在提交中，直接返回
+    if (state is SubmissionInProgress) {
+      if (kDebugMode) {
+        print('🚫 阻止重复提交：提交正在进行中');
+      }
+      return;
+    }
+
     final currentState = state;
     if (currentState is! OrderDetailsLoaded) {
       emit(SubmissionError(

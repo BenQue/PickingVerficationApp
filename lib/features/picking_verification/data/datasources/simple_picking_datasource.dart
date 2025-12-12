@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import '../../../../core/config/app_config.dart';
 import '../models/simple_api_models.dart';
 
 /// 简化的拣货校验数据源 - 使用新的SimpleAPI
@@ -125,42 +126,175 @@ class SimplePickingDataSource {
     required String workCenter,
     required String updateBy,
   }) async {
-    debugPrint('正在更新工单状态: $workOrderId');
+    try {
+      if (AppConfig.enableApiDebugLogging) {
+        debugPrint('=== 开始提交工单验证 ===');
+        debugPrint('工单ID: $workOrderId');
+        debugPrint('工序: $operation');
+        debugPrint('状态: $status');
+        debugPrint('工作中心: $workCenter');
+        debugPrint('操作人: $updateBy');
+      }
 
-    // 使用真实API调用
-    final request = WorkOrderStatusUpdateRequest(
-      workOrderId: workOrderId,
-      operation: operation,
-      status: status,
-      workCenter: workCenter,
-      updateOn: DateTime.now(),
-      updateBy: updateBy,
-    );
+      // 使用真实API调用
+      final request = WorkOrderStatusUpdateRequest(
+        workOrderId: workOrderId,
+        operation: operation,
+        status: status,
+        workCenter: workCenter,
+        updateOn: DateTime.now(),
+        updateBy: updateBy,
+      );
 
-    final response = await dio.put(
-      '$baseUrl/api/WorkOrderPickVerf',
-      data: request.toJson(),
-    );
+      final requestJson = request.toJson();
 
-    if (response.statusCode == 200) {
-      final apiResponse = WorkOrderStatusUpdateResponse.fromJson(response.data);
+      if (AppConfig.enableApiDebugLogging) {
+        debugPrint('请求URL: $baseUrl/api/WorkOrderPickVerf');
+        debugPrint('请求方法: PUT');
+        debugPrint('请求体: $requestJson');
+      }
 
-      if (apiResponse.isSuccess) {
-        debugPrint('工单状态更新成功: ${apiResponse.message}');
-        return apiResponse.data;
+      final response = await dio.put(
+        '$baseUrl/api/WorkOrderPickVerf',
+        data: requestJson,
+      );
+
+      if (AppConfig.enableApiDebugLogging) {
+        debugPrint('响应状态码: ${response.statusCode}');
+        debugPrint('响应数据: ${response.data}');
+      }
+
+      if (response.statusCode == 200) {
+        final apiResponse = WorkOrderStatusUpdateResponse.fromJson(response.data);
+
+        if (apiResponse.isSuccess) {
+          debugPrint('✅ 工单状态更新成功: ${apiResponse.message}');
+          return apiResponse.data;
+        } else {
+          debugPrint('❌ API返回失败: ${apiResponse.message}');
+          throw DioException(
+            requestOptions: response.requestOptions,
+            response: response,
+            message: apiResponse.message,
+          );
+        }
       } else {
+        debugPrint('❌ HTTP错误: ${response.statusCode}');
         throw DioException(
           requestOptions: response.requestOptions,
           response: response,
-          message: apiResponse.message,
+          message: '更新工单状态失败',
         );
       }
-    } else {
-      throw DioException(
-        requestOptions: response.requestOptions,
-        response: response,
-        message: '更新工单状态失败',
-      );
+    } on DioException catch (e) {
+      debugPrint('=== 工单提交异常 ===');
+      debugPrint('异常类型: ${e.type}');
+      debugPrint('状态码: ${e.response?.statusCode}');
+      debugPrint('错误消息: ${e.message}');
+
+      if (AppConfig.enableApiDebugLogging) {
+        debugPrint('响应头: ${e.response?.headers}');
+        debugPrint('响应数据: ${e.response?.data}');
+        debugPrint('请求数据: ${e.requestOptions.data}');
+      }
+
+      // 处理HTTP 400错误
+      if (e.response?.statusCode == 400) {
+        debugPrint('');
+        debugPrint('🔍 HTTP 400 错误诊断信息:');
+        debugPrint('1. 检查员工ID是否有效: $updateBy');
+        debugPrint('2. 检查工作中心代码是否有效: $workCenter');
+        debugPrint('3. 检查工单状态是否允许提交');
+        debugPrint('4. 请联系服务器管理员确认有效的配置值');
+        debugPrint('');
+
+        // 尝试提取服务器错误消息
+        String errorMessage = '提交验证失败';
+        if (e.response?.data != null) {
+          try {
+            if (e.response!.data is Map) {
+              final data = e.response!.data as Map<String, dynamic>;
+              // 按优先级尝试提取错误消息
+              if (data.containsKey('message') && data['message'] != null) {
+                errorMessage = data['message'] as String;
+              } else if (data.containsKey('Message') && data['Message'] != null) {
+                errorMessage = data['Message'] as String;
+              } else if (data.containsKey('error') && data['error'] != null) {
+                errorMessage = data['error'] as String;
+              } else if (data.containsKey('Error') && data['Error'] != null) {
+                errorMessage = data['Error'] as String;
+              } else if (data.containsKey('msg') && data['msg'] != null) {
+                errorMessage = data['msg'] as String;
+              } else {
+                // 如果没有明确的错误字段，尝试格式化整个响应
+                errorMessage = '服务器返回错误: ${data.toString()}';
+              }
+            } else if (e.response!.data is String) {
+              final dataStr = e.response!.data as String;
+              if (dataStr.isNotEmpty) {
+                errorMessage = dataStr;
+              }
+            }
+          } catch (parseError) {
+            debugPrint('解析服务器错误消息失败: $parseError');
+            errorMessage = '服务器返回了无法解析的错误信息';
+          }
+        } else {
+          errorMessage = '服务器未返回错误详情';
+        }
+
+        if (AppConfig.enableApiDebugLogging) {
+          debugPrint('最终错误消息: $errorMessage');
+        }
+
+        // 直接抛出服务器错误消息，不添加额外的配置信息
+        // 配置信息已经在日志中输出了
+        throw Exception(errorMessage);
+      }
+
+      // 处理其他HTTP错误 (401, 403, 404, 500等)
+      if (e.response != null) {
+        String serverMessage = '未知错误';
+
+        // 尝试从响应中提取服务器错误消息
+        if (e.response!.data != null) {
+          try {
+            if (e.response!.data is Map) {
+              final data = e.response!.data as Map<String, dynamic>;
+              if (data.containsKey('message') && data['message'] != null) {
+                serverMessage = data['message'] as String;
+              } else if (data.containsKey('Message') && data['Message'] != null) {
+                serverMessage = data['Message'] as String;
+              } else if (data.containsKey('error') && data['error'] != null) {
+                serverMessage = data['error'] as String;
+              }
+            } else if (e.response!.data is String) {
+              serverMessage = e.response!.data as String;
+            }
+          } catch (_) {
+            serverMessage = e.message ?? '未知错误';
+          }
+        }
+
+        throw Exception('提交失败 (HTTP ${e.response!.statusCode}): $serverMessage');
+      }
+
+      // 处理网络错误
+      if (e.type == DioExceptionType.connectionTimeout) {
+        throw Exception('连接服务器超时,请检查网络');
+      } else if (e.type == DioExceptionType.receiveTimeout) {
+        throw Exception('服务器响应超时,请重试');
+      } else if (e.type == DioExceptionType.connectionError) {
+        throw Exception('网络连接失败,请检查网络设置');
+      } else {
+        throw Exception('网络错误: ${e.message ?? "请检查网络连接"}');
+      }
+    } catch (e) {
+      debugPrint('❌ 未知异常: $e');
+      if (e is Exception) {
+        rethrow;
+      }
+      throw Exception('提交工单失败: $e');
     }
   }
 

@@ -253,11 +253,27 @@ class SimplePickingBloc extends Bloc<SimplePickingEvent, SimplePickingState> {
           emit(currentState);
         }
       } catch (e) {
+        // 提取友好的错误消息
+        String errorMessage = '提交验证失败';
+
+        if (e is Exception) {
+          // Exception类型，提取消息
+          final exceptionStr = e.toString();
+          if (exceptionStr.startsWith('Exception: ')) {
+            // 移除 'Exception: ' 前缀
+            errorMessage = exceptionStr.substring(11);
+          } else {
+            errorMessage = exceptionStr;
+          }
+        } else {
+          errorMessage = e.toString();
+        }
+
         emit(SimplePickingError(
-          message: '提交验证失败: ${e.toString()}',
+          message: errorMessage,
           lastWorkOrder: workOrder,
         ));
-        
+
         // 恢复到加载状态
         await Future.delayed(const Duration(seconds: 2));
         emit(currentState);

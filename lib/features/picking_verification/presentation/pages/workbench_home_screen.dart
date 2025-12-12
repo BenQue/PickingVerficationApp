@@ -360,15 +360,17 @@ class _WorkbenchHomeScreenState extends State<WorkbenchHomeScreen> {
           ],
         ),
         const SizedBox(height: 12),
-        // 第二行：电缆退库和库存查询
+        // 第二行：电缆入库和库存查询
         Row(
           children: [
             Expanded(
-              child: _buildDisabledFeatureCard(
+              child: _buildFeatureCard(
                 context: context,
-                icon: Icons.unarchive,
-                title: '电缆退库',
-                baseColor: const Color(0xFF4CAF50),
+                icon: Icons.move_to_inbox,
+                title: '电缆入库',
+                subtitle: '断线电缆收货',
+                color: const Color(0xFF4CAF50), // 明亮绿色 Material Green 500
+                onTap: () => _navigateToReceiving(context),
               ),
             ),
             const SizedBox(width: 12),
@@ -532,7 +534,7 @@ class _WorkbenchHomeScreenState extends State<WorkbenchHomeScreen> {
                           const Padding(
                             padding: EdgeInsets.only(left: 24),
                             child: Text(
-                              'V1.5.3',
+                              'V1.7.0',
                               style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.bold,
@@ -589,6 +591,11 @@ class _WorkbenchHomeScreenState extends State<WorkbenchHomeScreen> {
   /// 导航到电缆退库功能
   void _navigateToReturn(BuildContext context) {
     context.go('/line-stock/return');
+  }
+
+  /// 导航到电缆入库功能
+  void _navigateToReceiving(BuildContext context) {
+    context.go('/line-stock/receiving');
   }
 
   /// 导航到合箱校验功能

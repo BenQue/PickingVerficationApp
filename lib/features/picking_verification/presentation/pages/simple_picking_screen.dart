@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import '../../../../core/config/app_config.dart';
 import '../../domain/entities/simple_picking_entities.dart';
 import '../bloc/simple_picking_bloc.dart';
 import '../widgets/simple_material_item_widget.dart';
@@ -778,8 +779,8 @@ class _SimplePickingScreenState extends State<SimplePickingScreen>
               Navigator.pop(dialogContext);
               context.read<SimplePickingBloc>().add(
                 const SubmitVerification(
-                  updateBy: 'operator', // TODO: 从用户登录信息获取
-                  workCenter: 'WC001',  // TODO: 从配置获取
+                  updateBy: AppConfig.defaultEmployeeId,
+                  workCenter: AppConfig.defaultWorkCenter,
                 ),
               );
             },

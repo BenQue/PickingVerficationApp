@@ -7,6 +7,7 @@ import 'package:picking_verification_app/features/picking_verification/domain/re
 import 'package:picking_verification_app/features/picking_verification/presentation/bloc/picking_verification_bloc.dart';
 import 'package:picking_verification_app/features/picking_verification/presentation/bloc/picking_verification_event.dart';
 import 'package:picking_verification_app/features/picking_verification/presentation/bloc/picking_verification_state.dart';
+import 'package:picking_verification_app/features/picking_verification/presentation/utils/submission_validator.dart';
 
 // Mock classes
 class MockPickingRepository extends Mock implements PickingRepository {}
@@ -19,9 +20,12 @@ void main() {
     late List<MaterialItem> testMaterials;
 
     setUp(() {
+      // 重置 SubmissionGuard 状态，防止测试间相互影响
+      SubmissionGuard.reset();
+
       mockRepository = MockPickingRepository();
       bloc = PickingVerificationBloc(pickingRepository: mockRepository);
-      
+
       testMaterials = [
         const MaterialItem(
           id: 'MAT001',
@@ -63,6 +67,8 @@ void main() {
 
     tearDown(() {
       bloc.close();
+      // 在每个测试后重置 SubmissionGuard，确保测试间独立
+      SubmissionGuard.reset();
     });
 
     group('SubmitVerificationEvent', () {
@@ -110,10 +116,9 @@ void main() {
           isA<SubmissionInProgress>()
             .having((s) => s.currentStep, 'currentStep', '处理服务器响应')
             .having((s) => s.progress, 'progress', 0.9),
-          isA<LocalDataCleared>(),
           isA<SubmissionSuccess>()
-            .having((s) => s.submissionId, 'submissionId', 'SUB_123456')
             .having((s) => s.operatorId, 'operatorId', 'OP001'),
+          isA<LocalDataCleared>(),
         ],
         verify: (bloc) {
           verify(() => mockRepository.submitVerification(
@@ -196,6 +201,8 @@ void main() {
       blocTest<PickingVerificationBloc, PickingVerificationState>(
         'emits error when API call fails',
         build: () {
+          SubmissionGuard.reset(); // 重置避免时间间隔检查失败
+
           when(() => mockRepository.submitVerification(
             orderId: any(named: 'orderId'),
             materials: any(named: 'materials'),
@@ -222,8 +229,8 @@ void main() {
           isA<SubmissionInProgress>()
             .having((s) => s.currentStep, 'currentStep', '提交到服务器'),
           isA<SubmissionError>()
-            .having((s) => s.errorType, 'errorType', SubmissionErrorType.unknownError)
-            .having((s) => s.errorMessage, 'errorMessage', contains('Network error')),
+            .having((s) => s.errorType, 'errorType', SubmissionErrorType.networkError)
+            .having((s) => s.errorMessage, 'errorMessage', contains('网络')),
         ],
         verify: (bloc) {
           verify(() => mockRepository.submitVerification(
@@ -239,6 +246,8 @@ void main() {
       blocTest<PickingVerificationBloc, PickingVerificationState>(
         'handles network timeout correctly',
         build: () {
+          SubmissionGuard.reset(); // 重置避免时间间隔检查失败
+
           when(() => mockRepository.submitVerification(
             orderId: any(named: 'orderId'),
             materials: any(named: 'materials'),
@@ -265,12 +274,77 @@ void main() {
             .having((s) => s.errorType, 'errorType', SubmissionErrorType.timeoutError),
         ],
       );
+
+      blocTest<PickingVerificationBloc, PickingVerificationState>(
+        'prevents duplicate submission when already in progress',
+        build: () {
+          SubmissionGuard.reset(); //  重置确保测试独立性
+
+          when(() => mockRepository.submitVerification(
+            orderId: any(named: 'orderId'),
+            materials: any(named: 'materials'),
+            operatorId: any(named: 'operatorId'),
+            submissionId: any(named: 'submissionId'),
+            metadata: any(named: 'metadata'),
+          )).thenAnswer((_) async {
+            return {
+              'success': true,
+              'submissionId': 'SUB_TEST',
+              'orderId': 'ORDER001',
+            };
+          });
+
+          return bloc;
+        },
+        seed: () => OrderDetailsLoaded(
+          order: testOrder,
+          isModeActivated: true,
+        ),
+        act: (bloc) {
+          // 快速发送两次提交事件，模拟用户连点
+          bloc.add(SubmitVerificationEvent(
+            orderId: 'ORDER001',
+            operatorId: 'OP001',
+          ));
+          bloc.add(SubmitVerificationEvent(
+            orderId: 'ORDER001',
+            operatorId: 'OP001',
+          ));
+        },
+        wait: Duration(milliseconds: 500), // 等待所有异步操作完成
+        expect: () => [
+          // 第一个提交正常进行
+          isA<SubmissionInProgress>()
+            .having((s) => s.currentStep, 'currentStep', '验证数据完整性'),
+          isA<SubmissionInProgress>()
+            .having((s) => s.currentStep, 'currentStep', '检查数据完整性'),
+          isA<SubmissionInProgress>()
+            .having((s) => s.currentStep, 'currentStep', '提交到服务器'),
+          isA<SubmissionInProgress>()
+            .having((s) => s.currentStep, 'currentStep', '处理服务器响应'),
+          isA<SubmissionSuccess>(),
+          isA<LocalDataCleared>(),
+          // 第二个提交事件应该被 droppable transformer 丢弃，不产生任何状态
+        ],
+        verify: (bloc) {
+          // 验证 repository 只被调用一次
+          verify(() => mockRepository.submitVerification(
+            orderId: 'ORDER001',
+            materials: testMaterials,
+            operatorId: 'OP001',
+            submissionId: any(named: 'submissionId'),
+            metadata: any(named: 'metadata'),
+          )).called(1); // 关键验证：只调用一次！
+        },
+      );
     });
 
     group('RetrySubmissionEvent', () {
       blocTest<PickingVerificationBloc, PickingVerificationState>(
         'retries submission when in retryable error state',
         build: () {
+          SubmissionGuard.reset(); // 重置避免时间间隔检查失败
+
           when(() => mockRepository.submitVerification(
             orderId: any(named: 'orderId'),
             materials: any(named: 'materials'),
@@ -306,8 +380,8 @@ void main() {
           isA<SubmissionInProgress>(),
           isA<SubmissionInProgress>(),
           isA<SubmissionInProgress>(),
-          isA<LocalDataCleared>(),
           isA<SubmissionSuccess>(),
+          isA<LocalDataCleared>(),
         ],
       );
 
@@ -443,6 +517,8 @@ void main() {
       blocTest<PickingVerificationBloc, PickingVerificationState>(
         'transitions through submission states in correct order',
         build: () {
+          SubmissionGuard.reset(); // 重置避免时间间隔检查失败
+
           when(() => mockRepository.submitVerification(
             orderId: any(named: 'orderId'),
             materials: any(named: 'materials'),
@@ -478,10 +554,10 @@ void main() {
           // Response processing
           isA<SubmissionInProgress>()
             .having((s) => s.progress, 'progress', 0.9),
-          // Data cleanup
-          isA<LocalDataCleared>(),
           // Final success
           isA<SubmissionSuccess>(),
+          // Data cleanup
+          isA<LocalDataCleared>(),
         ],
       );
     });
@@ -490,6 +566,9 @@ void main() {
       blocTest<PickingVerificationBloc, PickingVerificationState>(
         'logs submission events correctly',
         build: () {
+          // 重置 SubmissionGuard 避免时间间隔检查失败
+          SubmissionGuard.reset();
+
           when(() => mockRepository.submitVerification(
             orderId: any(named: 'orderId'),
             materials: any(named: 'materials'),
@@ -501,7 +580,7 @@ void main() {
             'submissionId': 'SUB_AUDIT_TEST',
             'orderId': 'ORDER001',
           });
-          
+
           return bloc;
         },
         seed: () => OrderDetailsLoaded(
@@ -518,8 +597,8 @@ void main() {
           isA<SubmissionInProgress>(),
           isA<SubmissionInProgress>(),
           isA<SubmissionInProgress>(),
-          isA<LocalDataCleared>(),
           isA<SubmissionSuccess>(),
+          isA<LocalDataCleared>(),
         ],
         verify: (bloc) {
           // Verify that the repository was called with audit metadata

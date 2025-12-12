@@ -9,9 +9,11 @@ void main() {
       materialCode: 'MAT-001',
       materialDesc: 'Test Material Description',
       quantity: 100.0,
+      lastQuantity: 80.0,
       baseUnit: 'PC',
       batchCode: 'BATCH-2024-001',
       locationCode: 'A01-01-01',
+      locationDesc: 'Test Location',
       barcode: 'BC-TEST',
     );
 
@@ -217,10 +219,12 @@ void main() {
         materialCode: 'MAT-002',
         materialDesc: 'Zero Stock Material',
         quantity: 0.0,
+        lastQuantity: 0.0,
         baseUnit: 'PC',
         batchCode: 'BATCH-ZERO',
         locationCode: 'B01-01-01',
-      barcode: 'BC-TEST',
+        locationDesc: 'Zero Location',
+        barcode: 'BC-TEST',
       );
 
       // Act
@@ -242,10 +246,12 @@ void main() {
         materialCode: 'MAT-003',
         materialDesc: 'Large Stock Material',
         quantity: 99999.5,
+        lastQuantity: 99999.5,
         baseUnit: 'KG',
         batchCode: 'BATCH-LARGE',
         locationCode: 'C01-01-01',
-      barcode: 'BC-TEST',
+        locationDesc: 'Large Location',
+        barcode: 'BC-TEST',
       );
 
       // Act
@@ -267,10 +273,12 @@ void main() {
         materialCode: 'MAT-KG',
         materialDesc: 'Weight Material',
         quantity: 50.5,
+        lastQuantity: 50.5,
         baseUnit: 'KG',
         batchCode: 'BATCH-KG',
         locationCode: 'D01-01-01',
-      barcode: 'BC-TEST',
+        locationDesc: 'KG Location',
+        barcode: 'BC-TEST',
       );
 
       // Act
@@ -293,10 +301,12 @@ void main() {
         materialDesc:
             'This is a very long material description that should be displayed properly without causing overflow issues in the card layout',
         quantity: 10.0,
+        lastQuantity: 10.0,
         baseUnit: 'PC',
         batchCode: 'BATCH-LONG',
         locationCode: 'E01-01-01',
-      barcode: 'BC-TEST',
+        locationDesc: 'Long Location',
+        barcode: 'BC-TEST',
       );
 
       // Act
@@ -326,10 +336,12 @@ void main() {
         materialCode: 'MAT-001-A/B',
         materialDesc: 'Special Characters & Symbols',
         quantity: 5.0,
+        lastQuantity: 5.0,
         baseUnit: 'PC',
         batchCode: 'BATCH-2024#001',
         locationCode: 'A01/B01-01',
-      barcode: 'BC-TEST',
+        locationDesc: 'Special Location',
+        barcode: 'BC-TEST',
       );
 
       // Act

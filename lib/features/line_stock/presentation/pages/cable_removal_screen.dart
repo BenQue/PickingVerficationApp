@@ -358,10 +358,10 @@ class _CableRemovalScreenState extends State<CableRemovalScreen> {
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
           child: BarcodeInputField(
             label: '扫描电缆条码',
-            hint: '扫码枪扫描或手动输入13位条码',
+            hint: '扫码枪扫描或手动输入9位条码',
             controller: _cableController,
             onSubmit: _onCableScanned,
-            minLength: 13,
+            minLength: 9,
             autoSubmitOnChange: false,
             showKeyboard: false,
             enableInteractiveSelection: false,

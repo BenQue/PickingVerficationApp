@@ -3,6 +3,8 @@ import 'package:flutter/foundation.dart';
 import '../models/api_response_model.dart';
 import '../models/line_stock_model.dart';
 import '../models/transfer_request_model.dart';
+import '../models/handover_item_model.dart';
+import '../models/handover_confirm_request.dart';
 import '../../../../core/error/exceptions.dart';
 import '../../core/constants.dart';
 
@@ -14,9 +16,27 @@ abstract class LineStockRemoteDataSource {
     int? factoryId,
   });
 
+  /// Query stock by material code
+  /// Returns a list of stock items for all batches of the material
+  Future<List<LineStockModel>> queryByMaterialCode({
+    required String materialCode,
+    int? factoryId,
+  });
+
   /// Transfer stock to target location
   Future<bool> transferStock({
     required String locationCode,
+    required List<String> barCodes,
+  });
+
+  /// Query handover item by barcode for receiving
+  Future<HandoverItemModel> getHandoverByBarcode({
+    required String barcode,
+    int? factoryId,
+  });
+
+  /// Confirm handover/receiving for given barcodes
+  Future<String> confirmHandover({
     required List<String> barCodes,
   });
 }
@@ -86,6 +106,65 @@ class LineStockRemoteDataSourceImpl implements LineStockRemoteDataSource {
   }
 
   @override
+  Future<List<LineStockModel>> queryByMaterialCode({
+    required String materialCode,
+    int? factoryId,
+  }) async {
+    try {
+      final useFactoryId = factoryId ?? 2;
+
+      debugPrint('[LineStock] 开始按物料号查询: $materialCode, factoryId: $useFactoryId');
+      debugPrint('[LineStock] API路径: ${LineStockConstants.queryByMaterialApiPath}');
+
+      final response = await dio.get(
+        LineStockConstants.queryByMaterialApiPath,
+        queryParameters: {
+          'materialcode': materialCode,
+          'factoryid': useFactoryId,
+        },
+      );
+
+      debugPrint('[LineStock] 响应状态码: ${response.statusCode}');
+      debugPrint('[LineStock] 响应数据: ${response.data}');
+
+      final apiResponse = ApiResponse.fromJson(
+        response.data,
+        (data) {
+          // Handle list response
+          if (data is List) {
+            return data
+                .map((item) => LineStockModel.fromJson(item as Map<String, dynamic>))
+                .toList();
+          }
+          return <LineStockModel>[];
+        },
+      );
+
+      debugPrint('[LineStock] API响应解析: success=${apiResponse.isSuccess}, message=${apiResponse.message}');
+
+      if (apiResponse.isSuccess) {
+        final result = apiResponse.data ?? <LineStockModel>[];
+        debugPrint('[LineStock] 查询到 ${result.length} 条批次记录');
+        return result;
+      } else {
+        debugPrint('[LineStock] 查询失败: ${apiResponse.message}');
+        throw ServerException(apiResponse.message);
+      }
+    } on ServerException {
+      rethrow;
+    } on NetworkException {
+      rethrow;
+    } on DioException catch (e) {
+      debugPrint('[LineStock] DioException: type=${e.type}, message=${e.message}');
+      debugPrint('[LineStock] Response: ${e.response?.data}');
+      throw _handleDioException(e);
+    } catch (e) {
+      debugPrint('[LineStock] 未知错误: $e');
+      throw ServerException('${LineStockConstants.unknownError}: $e');
+    }
+  }
+
+  @override
   Future<bool> transferStock({
     required String locationCode,
     required List<String> barCodes,
@@ -132,6 +211,104 @@ class LineStockRemoteDataSourceImpl implements LineStockRemoteDataSource {
       return ServerException(message ?? LineStockConstants.serverError);
     } else {
       return NetworkException(LineStockConstants.networkError);
+    }
+  }
+
+  // ============ Handover/Receiving API Methods ============
+
+  @override
+  Future<HandoverItemModel> getHandoverByBarcode({
+    required String barcode,
+    int? factoryId,
+  }) async {
+    try {
+      // Use factoryId from parameter, or default to 2
+      final useFactoryId = factoryId ?? 2;
+
+      debugPrint('[Handover] 开始查询待入库条码: $barcode, factoryId: $useFactoryId');
+      debugPrint('[Handover] API路径: ${LineStockConstants.handoverQueryApiPath}');
+
+      final response = await dio.get(
+        LineStockConstants.handoverQueryApiPath,
+        queryParameters: {
+          'barcode': barcode,
+          'factoryid': useFactoryId,
+        },
+      );
+
+      debugPrint('[Handover] 响应状态码: ${response.statusCode}');
+      debugPrint('[Handover] 响应数据: ${response.data}');
+
+      final apiResponse = ApiResponse.fromJson(
+        response.data,
+        (data) {
+          if (data is Map<String, dynamic>) {
+            return HandoverItemModel.fromJson(data);
+          }
+          return null;
+        },
+      );
+
+      debugPrint('[Handover] API响应解析: success=${apiResponse.isSuccess}, message=${apiResponse.message}');
+
+      if (apiResponse.isSuccess && apiResponse.data != null) {
+        return apiResponse.data!;
+      } else {
+        debugPrint('[Handover] 查询失败: ${apiResponse.message}');
+        throw ServerException(apiResponse.message);
+      }
+    } on ServerException {
+      rethrow;
+    } on NetworkException {
+      rethrow;
+    } on DioException catch (e) {
+      debugPrint('[Handover] DioException: type=${e.type}, message=${e.message}');
+      debugPrint('[Handover] Response: ${e.response?.data}');
+      throw _handleDioException(e);
+    } catch (e) {
+      debugPrint('[Handover] 未知错误: $e');
+      throw ServerException('${LineStockConstants.unknownError}: $e');
+    }
+  }
+
+  @override
+  Future<String> confirmHandover({
+    required List<String> barCodes,
+  }) async {
+    try {
+      debugPrint('[Handover] 开始确认收货, 条码数量: ${barCodes.length}');
+      debugPrint('[Handover] API路径: ${LineStockConstants.handoverConfirmApiPath}');
+
+      final request = HandoverConfirmRequest(barCodes: barCodes);
+
+      final response = await dio.post(
+        LineStockConstants.handoverConfirmApiPath,
+        data: request.toJson(),
+      );
+
+      debugPrint('[Handover] 响应状态码: ${response.statusCode}');
+      debugPrint('[Handover] 响应数据: ${response.data}');
+
+      final apiResponse = ApiResponse.fromJson(
+        response.data,
+        (data) => data,
+      );
+
+      if (apiResponse.isSuccess) {
+        return apiResponse.message;
+      } else {
+        throw ServerException(apiResponse.message);
+      }
+    } on ServerException {
+      rethrow;
+    } on NetworkException {
+      rethrow;
+    } on DioException catch (e) {
+      debugPrint('[Handover] DioException: type=${e.type}, message=${e.message}');
+      throw _handleDioException(e);
+    } catch (e) {
+      debugPrint('[Handover] 未知错误: $e');
+      throw ServerException('${LineStockConstants.unknownError}: $e');
     }
   }
 }

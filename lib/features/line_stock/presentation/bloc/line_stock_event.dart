@@ -29,6 +29,21 @@ class ClearQueryResult extends LineStockEvent {
   const ClearQueryResult();
 }
 
+/// Query stock by material code
+/// Returns list of stock items for all batches of the material
+class QueryStockByMaterialCode extends LineStockEvent {
+  final String materialCode;
+  final int? factoryId;
+
+  const QueryStockByMaterialCode({
+    required this.materialCode,
+    this.factoryId,
+  });
+
+  @override
+  List<Object?> get props => [materialCode, factoryId];
+}
+
 // ============ Shelving Events ============
 
 /// Start shelving with pre-filled cable from query
@@ -105,4 +120,42 @@ class ResetShelving extends LineStockEvent {
 /// Reset all states
 class ResetLineStock extends LineStockEvent {
   const ResetLineStock();
+}
+
+// ============ Handover/Receiving Events ============
+
+/// Scan barcode to add to receiving list
+/// This will query the API first, then add to list if successful
+class ScanHandoverBarcode extends LineStockEvent {
+  final String barcode;
+
+  const ScanHandoverBarcode(this.barcode);
+
+  @override
+  List<Object?> get props => [barcode];
+}
+
+/// Remove item from receiving list by barcode
+class RemoveHandoverItem extends LineStockEvent {
+  final String barcode;
+
+  const RemoveHandoverItem(this.barcode);
+
+  @override
+  List<Object?> get props => [barcode];
+}
+
+/// Clear all items from receiving list
+class ClearHandoverList extends LineStockEvent {
+  const ClearHandoverList();
+}
+
+/// Confirm handover/receiving for all items in list
+class ConfirmHandover extends LineStockEvent {
+  const ConfirmHandover();
+}
+
+/// Reset handover state to initial
+class ResetHandover extends LineStockEvent {
+  const ResetHandover();
 }

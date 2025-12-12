@@ -446,11 +446,11 @@ class _CableShelvingScreenState extends State<CableShelvingScreen> {
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 8), // Reduced vertical padding
           child: BarcodeInputField(
             label: '扫描电缆条码',
-            hint: '扫码枪扫描或手动输入13位条码',
+            hint: '扫码枪扫描或手动输入9位条码',
             controller: _cableController, // Use controller for manual clearing
             focusNode: _cableFocusNode,
             onSubmit: _onCableScanned,
-            minLength: 13,
+            minLength: 9,
             autoSubmitOnChange: false,
             showKeyboard: false, // PDA模式: 禁用自动弹出键盘
             enableInteractiveSelection: false, // 禁用文本选择

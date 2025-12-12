@@ -196,8 +196,8 @@ class _CableReturnScreenState extends State<CableReturnScreen> {
   Widget _buildBarcodeInput() {
     return BarcodeInputField(
       label: '电缆条码',
-      hint: '扫描或输入13位电缆条码后按回车',
-      minLength: 13,
+      hint: '扫描或输入9位电缆条码后按回车',
+      minLength: 9,
       autoSubmitOnChange: false,
       showKeyboard: false, // PDA模式: 禁用自动弹出键盘
       onSubmit: (barcode) {

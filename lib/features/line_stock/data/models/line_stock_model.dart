@@ -7,9 +7,11 @@ class LineStockModel {
   final String? materialCode;
   final String? materialDesc;
   final double? quantity;
+  final double? lastQuantity; // Remaining quantity
   final String? baseUnit;
   final String? batchCode;
   final String? locationCode;
+  final String? locationDesc; // Location description
   final String? barcode;
 
   const LineStockModel({
@@ -17,21 +19,25 @@ class LineStockModel {
     this.materialCode,
     this.materialDesc,
     this.quantity,
+    this.lastQuantity,
     this.baseUnit,
     this.batchCode,
     this.locationCode,
+    this.locationDesc,
     this.barcode,
   });
 
   factory LineStockModel.fromJson(Map<String, dynamic> json) {
     return LineStockModel(
-      stockId: json['stockId'] as int?,
+      stockId: json['id'] as int? ?? json['stockId'] as int?,
       materialCode: json['materialCode'] as String?,
       materialDesc: json['materialDesc'] as String?,
       quantity: (json['quantity'] as num?)?.toDouble(),
+      lastQuantity: (json['lastQuantity'] as num?)?.toDouble(),
       baseUnit: json['baseUnit'] as String?,
       batchCode: json['batchCode'] as String?,
       locationCode: json['locationCode'] as String?,
+      locationDesc: json['locationDesc'] as String?,
       barcode: json['barCode'] as String?, // API uses 'barCode' with capital C
     );
   }
@@ -42,9 +48,11 @@ class LineStockModel {
       'materialCode': materialCode,
       'materialDesc': materialDesc,
       'quantity': quantity,
+      'lastQuantity': lastQuantity,
       'baseUnit': baseUnit,
       'batchCode': batchCode,
       'locationCode': locationCode,
+      'locationDesc': locationDesc,
       'barcode': barcode,
     };
   }
@@ -56,9 +64,11 @@ class LineStockModel {
       materialCode: materialCode ?? '',
       materialDesc: materialDesc ?? '',
       quantity: quantity ?? 0.0,
-      baseUnit: '米', // Temporarily fixed to '米' until server provides correct unit
+      lastQuantity: lastQuantity ?? quantity ?? 0.0, // Default to quantity if not provided
+      baseUnit: baseUnit ?? '米', // Default to '米' if not provided
       batchCode: batchCode ?? '',
       locationCode: locationCode ?? '',
+      locationDesc: locationDesc ?? '',
       barcode: barcode ?? '',
     );
   }

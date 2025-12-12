@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 /// Barcode input field optimized for PDA scanner devices
 ///
@@ -93,12 +94,29 @@ class _BarcodeInputFieldState extends State<BarcodeInputField> {
 
     // Initialize keyboard state based on showKeyboard parameter
     _shouldShowKeyboard = widget.showKeyboard;
+
+    // Listen to focus changes to hide soft keyboard in PDA mode
+    _focusNode.addListener(_onFocusChanged);
+  }
+
+  void _onFocusChanged() {
+    // In PDA mode (showKeyboard=false), hide soft keyboard when focused
+    // but still allow hardware keyboard/scanner input
+    if (_focusNode.hasFocus && !widget.showKeyboard && !_shouldShowKeyboard) {
+      // Use a small delay to ensure the keyboard doesn't flash
+      Future.delayed(const Duration(milliseconds: 50), () {
+        if (mounted) {
+          SystemChannels.textInput.invokeMethod('TextInput.hide');
+        }
+      });
+    }
   }
 
   @override
   void dispose() {
     _debounce?.cancel();
     _controller.removeListener(_onTextChanged);
+    _focusNode.removeListener(_onFocusChanged);
     // Only dispose if we created the focus node
     if (widget.focusNode == null) {
       _focusNode.dispose();
@@ -262,8 +280,9 @@ class _BarcodeInputFieldState extends State<BarcodeInputField> {
       readOnly: widget.readOnly,
       showCursor: widget.showCursor,
       enableInteractiveSelection: widget.enableInteractiveSelection,
-      // Control keyboard display based on current state
-      keyboardType: _shouldShowKeyboard ? TextInputType.text : TextInputType.none,
+      // Always use TextInputType.text to accept hardware scanner/keyboard input
+      // Soft keyboard visibility is controlled via SystemChannels in _onFocusChanged
+      keyboardType: TextInputType.text,
       onTap: _onTap, // Handle manual tap to show keyboard
       style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w500),
       textInputAction: TextInputAction.done,

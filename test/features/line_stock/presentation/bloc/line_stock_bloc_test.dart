@@ -22,9 +22,11 @@ void main() {
     materialCode: 'C12345',
     materialDesc: '电缆测试',
     quantity: 100.0,
+    lastQuantity: 80.0,
     baseUnit: 'M',
     batchCode: 'B001',
     locationCode: 'A-01-01',
+    locationDesc: '测试库位1',
     barcode: 'BC123',
   );
 
@@ -33,9 +35,11 @@ void main() {
     materialCode: 'C67890',
     materialDesc: '电缆测试2',
     quantity: 50.0,
+    lastQuantity: 40.0,
     baseUnit: 'M',
     batchCode: 'B002',
     locationCode: 'A-01-02',
+    locationDesc: '测试库位2',
     barcode: 'BC456',
   );
 

@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/repositories/line_stock_repository.dart';
 import '../../domain/entities/cable_item.dart';
+import '../../core/constants.dart';
 import 'line_stock_event.dart';
 import 'line_stock_state.dart';
 
@@ -11,6 +12,7 @@ class LineStockBloc extends Bloc<LineStockEvent, LineStockState> {
 
   LineStockBloc({required this.repository}) : super(const LineStockInitial()) {
     on<QueryStockByBarcode>(_onQueryStockByBarcode);
+    on<QueryStockByMaterialCode>(_onQueryStockByMaterialCode);
     on<ClearQueryResult>(_onClearQueryResult);
     on<StartShelvingWithCable>(_onStartShelvingWithCable);
     on<SetTargetLocation>(_onSetTargetLocation);
@@ -21,6 +23,13 @@ class LineStockBloc extends Bloc<LineStockEvent, LineStockState> {
     on<ConfirmShelving>(_onConfirmShelving);
     on<ResetShelving>(_onResetShelving);
     on<ResetLineStock>(_onResetLineStock);
+
+    // Handover/Receiving event handlers
+    on<ScanHandoverBarcode>(_onScanHandoverBarcode);
+    on<RemoveHandoverItem>(_onRemoveHandoverItem);
+    on<ClearHandoverList>(_onClearHandoverList);
+    on<ConfirmHandover>(_onConfirmHandover);
+    on<ResetHandover>(_onResetHandover);
   }
 
   /// Recursively find the ShelvingInProgress state from error chain
@@ -56,6 +65,35 @@ class LineStockBloc extends Bloc<LineStockEvent, LineStockState> {
     Emitter<LineStockState> emit,
   ) {
     emit(const LineStockInitial());
+  }
+
+  Future<void> _onQueryStockByMaterialCode(
+    QueryStockByMaterialCode event,
+    Emitter<LineStockState> emit,
+  ) async {
+    emit(const LineStockLoading(message: '按物料号查询中...'));
+
+    final result = await repository.queryByMaterialCode(
+      materialCode: event.materialCode,
+      factoryId: event.factoryId,
+    );
+
+    result.fold(
+      (failure) => emit(LineStockError(message: failure.message)),
+      (stockList) {
+        if (stockList.isEmpty) {
+          emit(LineStockError(
+            message: '${LineStockConstants.materialNotFoundError}: ${event.materialCode}',
+            canRetry: true,
+          ));
+        } else {
+          emit(MaterialQuerySuccess(
+            materialCode: event.materialCode,
+            stockList: stockList,
+          ));
+        }
+      },
+    );
   }
 
   Future<void> _onStartShelvingWithCable(
@@ -334,5 +372,173 @@ class LineStockBloc extends Bloc<LineStockEvent, LineStockState> {
     Emitter<LineStockState> emit,
   ) {
     emit(const LineStockInitial());
+  }
+
+  // ============ Handover/Receiving Event Handlers ============
+
+  /// Recursively find the HandoverInProgress state from error chain
+  HandoverInProgress? _findHandoverState(LineStockState state) {
+    if (state is HandoverInProgress) {
+      return state;
+    }
+    if (state is LineStockError && state.previousState != null) {
+      return _findHandoverState(state.previousState!);
+    }
+    return null;
+  }
+
+  Future<void> _onScanHandoverBarcode(
+    ScanHandoverBarcode event,
+    Emitter<LineStockState> emit,
+  ) async {
+    final currentState = state;
+
+    // Find the HandoverInProgress state (could be current or in error chain)
+    HandoverInProgress? handoverState;
+    if (currentState is HandoverInProgress) {
+      handoverState = currentState;
+    } else if (currentState is LineStockError && currentState.previousState != null) {
+      handoverState = _findHandoverState(currentState.previousState!);
+    }
+
+    // If no handover state exists, create a new one
+    handoverState ??= const HandoverInProgress(
+      itemList: [],
+      isLoading: false,
+    );
+
+    // Check for duplicate barcode
+    final isDuplicate = handoverState.itemList.any((item) => item.barCode == event.barcode);
+    if (isDuplicate) {
+      emit(LineStockError(
+        message: LineStockConstants.handoverDuplicateError,
+        canRetry: true,
+        previousState: handoverState,
+      ));
+      return;
+    }
+
+    // Save state before loading
+    final stateBeforeLoading = handoverState;
+
+    // Show loading state
+    emit(handoverState.copyWith(isLoading: true));
+
+    // Query API for handover item
+    final result = await repository.getHandoverByBarcode(
+      barcode: event.barcode,
+      factoryId: 2, // Fixed factory ID
+    );
+
+    result.fold(
+      (failure) {
+        emit(LineStockError(
+          message: failure.message,
+          canRetry: true,
+          previousState: stateBeforeLoading,
+        ));
+      },
+      (item) {
+        // Add item to list
+        final updatedList = [...stateBeforeLoading.itemList, item];
+        emit(HandoverInProgress(
+          itemList: updatedList,
+          isLoading: false,
+        ));
+      },
+    );
+  }
+
+  void _onRemoveHandoverItem(
+    RemoveHandoverItem event,
+    Emitter<LineStockState> emit,
+  ) {
+    final currentState = state;
+
+    HandoverInProgress? handoverState;
+    if (currentState is HandoverInProgress) {
+      handoverState = currentState;
+    } else if (currentState is LineStockError) {
+      handoverState = _findHandoverState(currentState);
+    }
+
+    if (handoverState == null) return;
+
+    final updatedList = handoverState.itemList
+        .where((item) => item.barCode != event.barcode)
+        .toList();
+
+    emit(HandoverInProgress(
+      itemList: updatedList,
+      isLoading: false,
+    ));
+  }
+
+  void _onClearHandoverList(
+    ClearHandoverList event,
+    Emitter<LineStockState> emit,
+  ) {
+    emit(const HandoverInProgress(
+      itemList: [],
+      isLoading: false,
+    ));
+  }
+
+  Future<void> _onConfirmHandover(
+    ConfirmHandover event,
+    Emitter<LineStockState> emit,
+  ) async {
+    final currentState = state;
+
+    HandoverInProgress? handoverState;
+    if (currentState is HandoverInProgress) {
+      handoverState = currentState;
+    } else if (currentState is LineStockError) {
+      handoverState = _findHandoverState(currentState);
+    }
+
+    if (handoverState == null || handoverState.itemList.isEmpty) {
+      emit(const LineStockError(
+        message: '没有待入库的物料',
+        canRetry: false,
+      ));
+      return;
+    }
+
+    // Show loading state
+    emit(handoverState.copyWith(isLoading: true));
+
+    // Extract barcodes
+    final barCodes = handoverState.itemList.map((item) => item.barCode).toList();
+    final confirmedCount = barCodes.length;
+
+    // Call API
+    final result = await repository.confirmHandover(barCodes: barCodes);
+
+    result.fold(
+      (failure) {
+        emit(LineStockError(
+          message: failure.message,
+          canRetry: true,
+          previousState: handoverState,
+        ));
+      },
+      (message) {
+        emit(HandoverSuccess(
+          message: message,
+          confirmedCount: confirmedCount,
+        ));
+      },
+    );
+  }
+
+  void _onResetHandover(
+    ResetHandover event,
+    Emitter<LineStockState> emit,
+  ) {
+    emit(const HandoverInProgress(
+      itemList: [],
+      isLoading: false,
+    ));
   }
 }

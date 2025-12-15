@@ -34,10 +34,14 @@ class UpdateNotAvailable extends UpdateState {
   /// 是否显示提示消息
   final bool showMessage;
 
-  const UpdateNotAvailable({this.showMessage = false});
+  /// 时间戳，确保每次状态都被认为是新的
+  final int timestamp;
+
+  UpdateNotAvailable({this.showMessage = false})
+      : timestamp = DateTime.now().millisecondsSinceEpoch;
 
   @override
-  List<Object?> get props => [showMessage];
+  List<Object?> get props => [showMessage, timestamp];
 }
 
 /// 下载中
@@ -77,10 +81,14 @@ class UpdateDownloaded extends UpdateState {
 class UpdateFailure extends UpdateState {
   final String message;
 
-  const UpdateFailure(this.message);
+  /// 时间戳，确保每次状态都被认为是新的
+  final int timestamp;
+
+  UpdateFailure(this.message)
+      : timestamp = DateTime.now().millisecondsSinceEpoch;
 
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [message, timestamp];
 }
 
 /// 已忽略更新

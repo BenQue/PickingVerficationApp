@@ -50,8 +50,15 @@ class _WorkbenchHomeScreenState extends State<WorkbenchHomeScreen> {
             ),
           );
         } else if (state is UpdateFailure) {
-          // 检查更新失败（静默失败，不打扰用户）
+          // 检查更新失败，显示错误提示
           debugPrint('检查更新失败: ${state.message}');
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('检查更新失败: ${state.message}'),
+              backgroundColor: Colors.orange,
+              duration: const Duration(seconds: 3),
+            ),
+          );
         }
       },
       child: Scaffold(

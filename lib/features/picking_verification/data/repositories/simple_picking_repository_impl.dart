@@ -14,24 +14,22 @@ class SimplePickingRepositoryImpl implements SimplePickingRepository {
 
   @override
   Future<SimpleWorkOrder> getWorkOrderDetails(String orderNo) async {
-    try {
-      // 从API获取数据
-      final workOrderData = await dataSource.getWorkOrderDetails(orderNo);
-      
-      // 转换为领域实体
-      final workOrder = _convertToEntity(workOrderData);
-      
-      // 缓存工单数据
-      _orderCache[orderNo] = workOrder;
-      
-      return workOrder;
-    } catch (e) {
-      // 如果失败，尝试返回缓存的数据
-      if (_orderCache.containsKey(orderNo)) {
-        return _orderCache[orderNo]!;
-      }
-      rethrow;
-    }
+    // 每次加载前清除该订单的旧缓存，确保获取最新数据
+    // 这样可以防止缓存污染导致的数据不一致问题
+    _orderCache.remove(orderNo);
+    
+    // 从API获取数据
+    final workOrderData = await dataSource.getWorkOrderDetails(orderNo);
+    
+    // 转换为领域实体
+    final workOrder = _convertToEntity(workOrderData);
+    
+    // 缓存工单数据（用于当前会话的状态管理）
+    _orderCache[orderNo] = workOrder;
+    
+    return workOrder;
+    // 注意：移除了失败时返回旧缓存的逻辑，
+    // 网络失败时直接向上抛出错误，让UI显示错误提示
   }
 
   @override
@@ -131,6 +129,7 @@ class SimplePickingRepositoryImpl implements SimplePickingRepository {
   }
 
   /// 清除所有缓存
+  @override
   void clearCache() {
     _orderCache.clear();
   }

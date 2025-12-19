@@ -148,6 +148,11 @@ class SimplePickingBloc extends Bloc<SimplePickingEvent, SimplePickingState> {
     emit(SimplePickingLoading());
     
     try {
+      // 如果订单号发生变化，先清除所有旧缓存，防止缓存污染
+      if (_currentOrderNo != null && _currentOrderNo != event.orderNo) {
+        repository.clearCache();
+      }
+      
       _currentOrderNo = event.orderNo;
       final workOrder = await repository.getWorkOrderDetails(event.orderNo);
 
@@ -287,6 +292,8 @@ class SimplePickingBloc extends Bloc<SimplePickingEvent, SimplePickingState> {
     Emitter<SimplePickingState> emit,
   ) async {
     _currentOrderNo = null;
+    // 清除所有缓存数据，防止下次加载时使用旧数据
+    repository.clearCache();
     emit(SimplePickingInitial());
   }
 

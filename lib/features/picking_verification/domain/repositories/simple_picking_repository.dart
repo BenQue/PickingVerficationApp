@@ -21,4 +21,8 @@ abstract class SimplePickingRepository {
     required String itemNo,
     required int completedQuantity,
   });
+
+  /// 清除所有缓存数据
+  /// 在切换订单或重置状态时调用，防止缓存污染
+  void clearCache();
 }

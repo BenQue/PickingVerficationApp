@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import '../bloc/simple_picking_bloc.dart';
-import 'simple_picking_screen.dart';
-import '../../data/repositories/simple_picking_repository_impl.dart';
-import '../../data/datasources/simple_picking_datasource.dart';
-import '../../../../core/api/dio_client.dart';
+// 注意：移除了不再需要的导入（SimplePickingBloc, SimplePickingScreen, 
+// SimplePickingRepositoryImpl, SimplePickingDataSource, DioClient）
+// 因为现在使用 GoRouter 导航，BLoC 由路由配置创建
 import '../../../../core/theme/workbench_theme.dart';
 import '../../../../core/config/app_config.dart';
 import '../../../app_update/presentation/bloc/update_bloc_simple.dart';
@@ -607,20 +605,8 @@ class _WorkbenchHomeScreenState extends State<WorkbenchHomeScreen> {
 
   /// 导航到合箱校验功能
   void _navigateToPickingVerification(BuildContext context) {
-    // 简化版直接导航到合箱校验界面，创建必要的依赖
-    final dioClient = DioClient();
-    final datasource = SimplePickingDataSource(dio: dioClient.dio);
-    final repository = SimplePickingRepositoryImpl(dataSource: datasource);
-
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => BlocProvider(
-          create: (context) => SimplePickingBloc(
-            repository: repository,
-          ),
-          child: const SimplePickingScreen(),
-        ),
-      ),
-    );
+    // 使用 GoRouter 导航，确保 BLoC 生命周期一致
+    // 路由 /picking-verification 已在 app_router.dart 中配置
+    context.push('/picking-verification');
   }
 }

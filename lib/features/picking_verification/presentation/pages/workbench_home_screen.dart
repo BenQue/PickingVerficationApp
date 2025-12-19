@@ -539,7 +539,7 @@ class _WorkbenchHomeScreenState extends State<WorkbenchHomeScreen> {
                           const Padding(
                             padding: EdgeInsets.only(left: 24),
                             child: Text(
-                              'V1.7.0',
+                              'V1.8.0',
                               style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.bold,

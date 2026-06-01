@@ -2346,3 +2346,23 @@ git add -A && git commit -m "docs: add WMPDA CLAUDE.md + adopt DESIGN.md from Qu
 ## Hand-off to Plan 2 (合箱校验)
 
 Plan 2 adds to `WmsApi`: `GET api/WorkOrderPickVerf` + `PUT api/WorkOrderPickVerf`; a `feature/picking/` module (Repository + ViewModel + screens); replaces the `Routes.PICKING` placeholder. It MUST honor the spec §7 cache-pollution rules (fetch fresh, single ViewModel instance, never fall back to stale data).
+
+---
+
+## Plan Set & Cross-Plan Coordination
+
+This is **Plan 1 of 4**. Execute in order; each produces runnable, testable software:
+
+| # | Plan file | Module | Status |
+|---|---|---|---|
+| 1 | `2026-06-01-wmpda-foundation.md` | scaffold + core + login + workbench | this file |
+| 2 | `2026-06-01-wmpda-picking.md` | 合箱校验 | unblocked |
+| 3 | `2026-06-01-wmpda-linestock.md` | 断线线边管理 (5 flows) | unblocked |
+| 4 | `2026-06-01-wmpda-warehouse.md` | 中央立库 入库/退货 | **backend-blocked** (placeholder endpoint; live integration deferred) |
+
+**Three shared files are edited by Plans 2–4. All edits are ADDITIVE — never rewrite these files wholesale:**
+- `core/network/WmsApi.kt` — each plan APPENDS its endpoints + imports after `login`. Methods never collide (distinct names). Keep all previously-added methods.
+- `AppContainer.kt` — each plan APPENDS its `by lazy` repository + import. Keep prior properties.
+- `core/nav/NavGraph.kt` — Plan 1 routes all 8 feature destinations through one `listOf(...).forEach { composable(route){ "待实现" } }` placeholder block. Each feature plan REMOVES only its own route(s) from that list and adds real `composable(route){ Screen(...) }` entries. The list shrinks across plans; after Plan 4, delete the now-empty block.
+
+**Accepted architecture trade-off (documented decision):** each feature's Retrofit wire DTOs live in `feature/<name>/data/` and `core/network/WmsApi.kt` imports them — a circular `core ↔ feature` *package* dependency. This compiles cleanly in WMPDA's single Gradle module and keeps one shared `WmsApi`. If WMPDA is ever split into Gradle modules (`:core`, `:feature:*`), relocate the wire DTOs into `core/network/dto/` (where `LoginDtos` already lives) to break the cycle. Until then, the coupling is intentional and harmless. (Login DTOs stay in `core/network/dto/` per Plan 1.)
